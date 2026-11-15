@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Meri Jaan ka Book</title>
+<style>
+  :root { --W: 300px; --H: 420px; --ink: #ffe3ec; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, #5a2340 0%, #2c1020 55%, #160812 100%);
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    -webkit-user-select: none; user-select: none;
+  }
+
+  .stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
+  .stage.dragging { cursor: grabbing; }
+
+  /* wrap = moves left/right so closed book stays centered; carries the 3D perspective */
+  .wrap { position: relative; width: calc(var(--W) * 2); height: var(--H); perspective: 2600px; will-change: transform; }
+  .shadow {
+    position: absolute; bottom: -3.5%; height: 7%; left: 0; width: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 70%);
+    filter: blur(6px); pointer-events: none;
+  }
+  .book { position: absolute; inset: 0; transform-style: preserve-3d; }
+
+  .sheet { position: absolute; top: 0; left: 50%; width: var(--W); height: 100%; transform-origin: left center; transform-style: preserve-3d; will-change: transform; }
+  .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .face.front { border-radius: 0 7px 7px 0; box-shadow: 2px 2px 8px rgba(0,0,0,.25); }
+  .face.back  { border-radius: 7px 0 0 7px; transform: rotateY(180deg); box-shadow: -2px 2px 8px rgba(0,0,0,.25); }
+  .face img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
+  .face .missing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12%; color: #b04068; font-size: 14px; background: #fff0f4; }
+
+  /* paper fold shading near the spine + dynamic shade while turning */
+  .face::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+  .face.front::after { background: linear-gradient(to right, rgba(0,0,0,.30), rgba(0,0,0,.08) 5%, rgba(0,0,0,0) 14%); }
+  .face.back::after  { background: linear-gradient(to left,  rgba(0,0,0,.30), rgba(0,0,0,.08) 5%, rgba(0,0,0,0) 14%); }
+  .shade { position: absolute; inset: 0; background: #1a0610; opacity: 0; pointer-events: none; z-index: 2; }
+
+  /* voice note hotspots */
+  .hot { position: absolute; z-index: 5; border-radius: 999px; cursor: pointer; overflow: hidden; }
+  .hot .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(214, 40, 110, .28); pointer-events: none; }
+  .hot::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 rgba(233, 64, 130, .75); animation: ping 1.8s ease-out infinite; }
+  .hot.playing::before { animation: none; box-shadow: 0 0 0 2px rgba(233, 64, 130, .9), 0 0 14px 2px rgba(233, 64, 130, .6); }
+  .hot { overflow: visible; }
+  .hot .fill { border-radius: inherit; }
+  .hot::after { content: ""; position: absolute; inset: -8px; }
+  .hot .ico { position: absolute; left: 1.2%; top: 5%; height: 90%; aspect-ratio: 1; border-radius: 50%; display: none; align-items: center; justify-content: center; gap: 13%; background: linear-gradient(135deg, #f071a8, #c8397b); box-shadow: 0 2px 6px rgba(160,30,90,.35); pointer-events: none; }
+  .hot.playing .ico { display: flex; }
+  .hot .ico i { display: block; width: 13%; height: 42%; background: #fff; border-radius: 2px; }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(233,64,130,.7); } 80%, 100% { box-shadow: 0 0 0 12px rgba(233,64,130,0); } }
+
+  /* controls */
+  .btn {
+    position: fixed; z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255, 227, 236, .14); color: var(--ink); font-size: 20px; line-height: 1;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center; transition: background .2s, opacity .2s;
+  }
+  .btn:hover { background: rgba(255, 227, 236, .28); }
+  .btn:focus-visible { outline: 2px solid #ff9ec0; outline-offset: 2px; }
+  .btn[disabled] { opacity: .25; cursor: default; }
+  #prev { left: max(10px, env(safe-area-inset-left)); top: 50%; margin-top: -22px; }
+  #next { right: max(10px, env(safe-area-inset-right)); top: 50%; margin-top: -22px; }
+  #music { right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); }
+  #music.off { opacity: .5; text-decoration: line-through; }
+  .where { position: fixed; z-index: 20; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); text-align: center; font-size: 13px; letter-spacing: .04em; color: rgba(255,227,236,.65); pointer-events: none; }
+
+  /* loader + rotate hint */
+  .loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #1d0a15; transition: opacity .6s; font-size: 18px; }
+  .loader.hide { opacity: 0; pointer-events: none; }
+  .bar { width: 180px; height: 4px; border-radius: 4px; background: rgba(255,227,236,.18); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: #ff7aa8; transition: width .2s; }
+  .rotate { display: none; position: fixed; inset: 0; z-index: 40; background: #1d0a15; align-items: center; justify-content: center; text-align: center; padding: 30px; font-size: 20px; line-height: 1.5; }
+  @media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } }
+
+  @media (prefers-reduced-motion: reduce) { .hot::before { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="wrap" id="wrap">
+    <div class="shadow" id="shadow"></div>
+    <div class="book" id="book"></div>
+  </div>
+</div>
+
+<button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
+<button class="btn" id="next" aria-label="Agla page">&#8250;</button>
+<button class="btn" id="music" aria-label="Music on/off" title="Music">&#9835;</button>
+<div class="where" id="where"></div>
+
+<div class="loader" id="loader"><div>Book khul rahi hai…</div><div class="bar"><i id="barfill"></i></div></div>
+<div class="rotate">Phone ko landscape mein ghumao<br>taaki book poori khule</div>
+
+<script>
+/* =====================================================================
+   SETTINGS – sirf yahan badalna hai
+   ===================================================================== */
+const CONFIG = {
+  // Sab files GitHub repo ke root mein hain (koi folder nahi)
+  cover: "coverpage.png",
+  end:   "theend.png",
+
+  pageCount: 17,                 // page1.png ... page17.png
+  pagePattern: "page{n}.png",
+
+  ratio: 0.714,                  // page ki width / height
+
+  // Background music: in naamon mein se jo file repo mein mile wo chalegi
+  bgm: ["bgm.mp3", "music.mp3", "bgmusic.mp3", "background.mp3", "song.mp3"],
+  bgmVolume: 0.45,
+
+  // Voice notes (x,y,w,h = pill ki jagah, page ke % mein)
+  voiceNotes: [
+    { page: 8,  x: 32.2, y: 72.8, w: 36.4, h: 5.2, src: "voicenote.mp3" },  // "play the vn !" wala page
+    { page: 15, x: 50.5, y: 42.8, w: 46,   h: 7.0, src: "hercore.mp3" }     // "iluuuuu smm" wala page
+  ]
+};
+
+/* =====================================================================
+   BOOK ENGINE
+   ===================================================================== */
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage"), wrap = $("wrap"), book = $("book"), shadow = $("shadow");
+  const btnPrev = $("prev"), btnNext = $("next"), btnMusic = $("music"), where = $("where");
+
+  let W = 300, H = 420;
+
+  // ---- leaves: cover, page1..pageN, (blank if odd), end ----
+  const leaves = [CONFIG.cover];
+  for (let n = 1; n <= CONFIG.pageCount; n++) leaves.push(CONFIG.pagePattern.replace("{n}", n));
+  if (leaves.length % 2 === 1) leaves.push(null);   // odd ho toh blank page
+  leaves.push(CONFIG.end);
+  // total leaves is even => sheets = leaves/2
+  const N = leaves.length / 2;
+
+  // ---- build sheets ----
+  const S = [];
+  function makeFace(src, cls) {
+    const f = document.createElement("div");
+    f.className = "face " + cls;
+    if (src) {
+      const img = new Image();
+      img.alt = ""; img.draggable = false; img.decoding = "async";
+      img.src = src;
+      img.onerror = () => { img.remove(); const m = document.createElement("div"); m.className = "missing"; m.textContent = src + " nahi mili"; f.insertBefore(m, f.firstChild); };
+      f.appendChild(img);
+    }
+    const sh = document.createElement("div"); sh.className = "shade"; f.appendChild(sh);
+    f._shade = sh;
+    return f;
+  }
+  for (let i = 0; i < N; i++) {
+    const el = document.createElement("div"); el.className = "sheet";
+    const front = makeFace(leaves[2 * i], "front");
+    const back = makeFace(leaves[2 * i + 1], "back");
+    el.appendChild(front); el.appendChild(back);
+    book.appendChild(el);
+    S.push({ el, front, back, a: 0, z: 0 });
+  }
+
+  // ---- state ----
+  let cur = 0;          // kitni sheets palat chuki hain
+  let busy = false;
+
+  function faceOf(leafIndex) { const s = S[leafIndex >> 1]; return leafIndex % 2 === 0 ? s.front : s.back; }
+
+  function setAngle(i, a) {
+    const s = S[i];
+    s.a = a;
+    s.el.style.transform = "translateZ(" + (s.z * 0.3) + "px) rotateY(" + (-a) + "deg)";
+    const t = Math.sin((a / 180) * Math.PI);          // 0 flat, 1 edge-on
+    s.front._shade.style.opacity = a < 90 ? (t * 0.45).toFixed(3) : 0;
+    s.back._shade.style.opacity = a >= 90 ? (t * 0.45).toFixed(3) : 0;
+    shift();
+  }
+
+  function shift() {
+    const a0 = S[0].a, aL = S[N - 1].a;
+    const x = W * (-0.5 * (1 - a0 / 180) + 0.5 * (aL / 180));
+    wrap.style.transform = "translateX(" + x.toFixed(2) + "px)";
+    const left = W * (1 - a0 / 180);
+    const right = W + W * (1 - aL / 180);
+    shadow.style.left = left + "px";
+    shadow.style.width = Math.max(0, right - left) + "px";
+  }
+
+  function layout(topIndex) {
+    for (let i = 0; i < N; i++) {
+      S[i].z = i < cur ? i + 1 : N - i;
+    }
+    if (typeof topIndex === "number") S[topIndex].z = N + 6;
+    for (let i = 0; i < N; i++) setAngle(i, S[i].a);
+  }
+
+  function ui() {
+    btnPrev.disabled = cur === 0;
+    btnNext.disabled = cur === N;
+    if (cur === 0) where.textContent = "";
+    else if (cur === N) where.textContent = "The End";
+    else where.textContent = (2 * cur - 1) + " – " + (2 * cur);
+  }
+
+  // ---- animation ----
+  const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  function animate(i, to, dur, done) {
+    const from = S[i].a, t0 = performance.now();
+    busy = true;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) dur = 1;
+    (function step(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      setAngle(i, from + (to - from) * ease(p));
+      if (p < 1) requestAnimationFrame(step);
+      else { busy = false; done && done(); }
+    })(t0);
+  }
+  const durFor = (from, to) => Math.max(260, Math.abs(to - from) / 180 * 900);
+
+  function goNext() {
+    if (busy || cur >= N) return;
+    const i = cur;
+    onCommit();
+    layout(i);
+    animate(i, 180, durFor(S[i].a, 180), () => { cur = i + 1; layout(); ui(); });
+  }
+  function goPrev() {
+    if (busy || cur <= 0) return;
+    const i = cur - 1;
+    onCommit();
+    layout(i);
+    animate(i, 0, durFor(S[i].a, 0), () => { cur = i; layout(); ui(); });
+  }
+  function onCommit() { startBgm(); flipSound(); stopVN(); }
+
+  // ---- drag / swipe ----
+  let drag = null;
+  function spineX() { const r = book.getBoundingClientRect(); return r.left + r.width / 2; }
+
+  stage.addEventListener("pointerdown", (e) => {
+    if (busy || e.target.closest(".hot, .btn")) return;
+    const r = book.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    const side = e.clientX >= spineX() ? "next" : "prev";
+    if (side === "next" && cur >= N) return;
+    if (side === "prev" && cur <= 0) return;
+    drag = { side, sx: e.clientX, sy: e.clientY, lx: e.clientX, lt: performance.now(), vx: 0, moved: false, id: e.pointerId, t0: performance.now() };
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.sx;
+    if (!drag.moved && Math.abs(dx) > 6) {
+      drag.moved = true;
+      drag.i = drag.side === "next" ? cur : cur - 1;
+      layout(drag.i);
+      stage.classList.add("dragging");
+    }
+    if (!drag.moved) return;
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.lt);
+    drag.vx = 0.8 * drag.vx + 0.2 * ((e.clientX - drag.lx) / dt);
+    drag.lx = e.clientX; drag.lt = now;
+    const k = Math.min(1, Math.max(0, (drag.side === "next" ? -dx : dx) / (W * 1.5)));
+    setAngle(drag.i, drag.side === "next" ? k * 180 : 180 - k * 180);
+  });
+
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    stage.classList.remove("dragging");
+    try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (!d.moved) {                       // simple tap
+      if (e.type === "pointerup") (d.side === "next" ? goNext : goPrev)();
+      return;
+    }
+    const i = d.i, a = S[i].a;
+    let commit;
+    if (d.side === "next") commit = a > 55 || d.vx < -0.45;
+    else commit = (180 - a) > 55 || d.vx > 0.45;
+    if (d.side === "next") {
+      if (commit) { onCommit(); animate(i, 180, durFor(a, 180), () => { cur = i + 1; layout(); ui(); }); }
+      else animate(i, 0, durFor(a, 0), () => { layout(); });
+    } else {
+      if (commit) { onCommit(); animate(i, 0, durFor(a, 0), () => { cur = i; layout(); ui(); }); }
+      else animate(i, 180, durFor(a, 180), () => { layout(); });
+    }
+  }
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+
+  btnNext.addEventListener("click", goNext);
+  btnPrev.addEventListener("click", goPrev);
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goNext(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goPrev(); }
+  });
+
+  // ---- sizing ----
+  function fit() {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    H = vh * 0.97; W = H * CONFIG.ratio;
+    if (W * 2 > vw * 0.985) { W = (vw * 0.985) / 2; H = W / CONFIG.ratio; }
+    const r = document.documentElement.style;
+    r.setProperty("--W", W.toFixed(1) + "px");
+    r.setProperty("--H", H.toFixed(1) + "px");
+    shift();
+  }
+  window.addEventListener("resize", fit);
+
+  /* ================= MUSIC ================= */
+  const bgmList = [].concat(CONFIG.bgm); let bgmIdx = 0;
+  const bgm = new Audio(bgmList[0]);
+  bgm.loop = true; bgm.preload = "auto"; bgm.volume = 0;
+  let bgmStarted = false, musicOn = true, vnPlaying = false, volTimer = null;
+
+  bgm.addEventListener("error", () => {
+    if (++bgmIdx < bgmList.length) { bgm.src = bgmList[bgmIdx]; bgm.load(); if (bgmStarted) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }
+  });
+  function targetVol() { return !musicOn ? 0 : (vnPlaying ? CONFIG.bgmVolume * 0.18 : CONFIG.bgmVolume); }
+  function fadeTo(v, ms) {
+    clearInterval(volTimer);
+    const from = bgm.volume, t0 = performance.now();
+    volTimer = setInterval(() => {
+      const p = Math.min(1, (performance.now() - t0) / ms);
+      bgm.volume = Math.min(1, Math.max(0, from + (v - from) * p));
+      if (p >= 1) clearInterval(volTimer);
+    }, 40);
+  }
+  function startBgm() {
+    if (bgmStarted) return;
+    bgmStarted = true;
+    const p = bgm.play();
+    if (p && p.catch) p.catch(() => { bgmStarted = false; });
+    fadeTo(targetVol(), 2500);
+  }
+  btnMusic.addEventListener("click", () => {
+    musicOn = !musicOn;
+    btnMusic.classList.toggle("off", !musicOn);
+    if (musicOn && !bgmStarted) startBgm();
+    fadeTo(targetVol(), 400);
+  });
+
+  /* ================= PAGE TURN SOUND (synth, no file needed) ================= */
+  let actx = null;
+  function flipSound() {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+      const len = Math.floor(actx.sampleRate * 0.45);
+      const buf = actx.createBuffer(1, len, actx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let k = 0; k < len; k++) {
+        const t = k / len;
+        d[k] = (Math.random() * 2 - 1) * Math.sin(Math.PI * t) * (1 - t * 0.5);
+      }
+      const src = actx.createBufferSource(); src.buffer = buf;
+      const bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2200; bp.Q.value = 0.6;
+      const g = actx.createGain(); g.gain.value = 0.10;
+      src.connect(bp); bp.connect(g); g.connect(actx.destination);
+      src.start();
+    } catch (_) {}
+  }
+
+  /* ================= VOICE NOTES ================= */
+  let activeVN = null;   // { audio, el }
+  function stopVN() {
+    if (!activeVN) return;
+    activeVN.audio.pause();
+    activeVN.audio.currentTime = 0;
+    activeVN.el.classList.remove("playing");
+    activeVN.fill.style.width = "0";
+    activeVN = null;
+    vnPlaying = false;
+    if (bgmStarted) fadeTo(targetVol(), 500);
+  }
+  function toggleVN(vn) {
+    if (activeVN && activeVN.vn === vn) { stopVN(); return; }
+    stopVN();
+    startBgm();
+    vn.audio.currentTime = 0;
+    const p = vn.audio.play();
+    if (p && p.catch) p.catch(() => {});
+    vn.el.classList.add("playing");
+    activeVN = vn;
+    vnPlaying = true;
+    if (bgmStarted) fadeTo(targetVol(), 400);
+  }
+  (CONFIG.voiceNotes || []).forEach((cfg) => {
+    const face = faceOf(cfg.page);           // leaf index == page number
+    if (!face) return;
+    const el = document.createElement("div");
+    el.className = "hot";
+    el.style.left = cfg.x + "%"; el.style.top = cfg.y + "%";
+    el.style.width = cfg.w + "%"; el.style.height = cfg.h + "%";
+    el.setAttribute("role", "button"); el.setAttribute("aria-label", "Voice note chalao");
+    const fill = document.createElement("div"); fill.className = "fill"; el.appendChild(fill);
+    const ico = document.createElement("div"); ico.className = "ico"; ico.innerHTML = "<i></i><i></i>"; el.appendChild(ico);
+    const audio = new Audio(cfg.src); audio.preload = "none";
+    const vn = { audio, el, fill };
+    audio.addEventListener("timeupdate", () => { if (audio.duration) fill.style.width = (audio.currentTime / audio.duration * 100) + "%"; });
+    audio.addEventListener("ended", () => { if (activeVN === vn) stopVN(); });
+    el.addEventListener("pointerdown", (e) => e.stopPropagation());
+    el.addEventListener("click", (e) => { e.stopPropagation(); toggleVN(vn); });
+    face.appendChild(el);
+  });
+
+  /* ================= PRELOAD + START ================= */
+  function preload() {
+    const list = leaves.filter(Boolean);
+    let done = 0;
+    const fillBar = $("barfill");
+    return Promise.all(list.map((src) => new Promise((res) => {
+      const im = new Image();
+      const fin = () => { done++; fillBar.style.width = (done / list.length * 100) + "%"; res(); };
+      im.onload = fin; im.onerror = fin; im.src = src;
+    })));
+  }
+
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+  window.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  document.addEventListener("dblclick", (e) => e.preventDefault());
+
+  fit(); layout(); ui();
+  const safety = new Promise((r) => setTimeout(r, 8000));
+  Promise.race([preload(), safety]).then(() => $("loader").classList.add("hide"));
+})();
+</script>
+</body>
+</html>
