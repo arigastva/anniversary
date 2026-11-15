@@ -4,112 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap" rel="stylesheet">
-<title>FUCK ME</title>
+<title>Meri Jaan ka Book</title>
 <style>
   :root { --W: 300px; --H: 420px; --ink: #ffe3ec; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; margin: 0; overflow: hidden; }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
   body {
     background: radial-gradient(ellipse at 50% 40%, #4a2a1c 0%, #35190f 55%, #22120c 100%);
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
     color: var(--ink);
     -webkit-user-select: none; user-select: none;
   }
 
   .stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
   .stage.dragging { cursor: grabbing; }
+  .col { display: flex; flex-direction: column; align-items: center; }
 
-  /* wrap = moves left/right so closed book stays centered; carries the 3D perspective */
-  .wrap { position: relative; width: calc(var(--W) * 2); height: var(--H); perspective: 2600px; will-change: transform; }
-  .shadow {
-    position: absolute; bottom: -3.5%; height: 7%; left: 0; width: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 70%);
-    filter: blur(6px); pointer-events: none;
-  }
+  .wrap { position: relative; width: var(--W); height: var(--H); perspective: 2200px; }
+  .shadow { position: absolute; left: 3%; width: 94%; bottom: -1.4%; height: 3%; background: radial-gradient(ellipse at center, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 70%); filter: blur(5px); pointer-events: none; }
   .book { position: absolute; inset: 0; transform-style: preserve-3d; }
 
-  .sheet { position: absolute; top: 0; left: 50%; width: var(--W); height: 100%; transform-origin: left center; transform-style: preserve-3d; will-change: transform; }
-  .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-  .face.front { border-radius: 0 7px 7px 0; box-shadow: 2px 2px 8px rgba(0,0,0,.25); }
-  .face.back  { border-radius: 7px 0 0 7px; transform: rotateY(180deg); box-shadow: -2px 2px 8px rgba(0,0,0,.25); }
+  .sheet { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: left center; transform-style: preserve-3d; will-change: transform; }
+  .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 0 7px 7px 0; box-shadow: 2px 2px 10px rgba(0,0,0,.3); }
+  .face.back { transform: rotateY(180deg); border-radius: 7px 0 0 7px; }
   .face img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
   .face .missing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12%; color: #b04068; font-size: 14px; background: #fff0f4; }
-
-  /* paper fold shading near the spine + dynamic shade while turning */
   .face::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
-  .face.front::after { background: linear-gradient(to right, rgba(0,0,0,.30), rgba(0,0,0,.08) 5%, rgba(0,0,0,0) 14%); }
-  .face.back::after  { background: linear-gradient(to left,  rgba(0,0,0,.30), rgba(0,0,0,.08) 5%, rgba(0,0,0,0) 14%); }
+  .face.front::after { background: linear-gradient(to right, rgba(0,0,0,.26), rgba(0,0,0,.07) 4%, rgba(0,0,0,0) 11%); }
+  .face.back::after  { background: linear-gradient(to left,  rgba(0,0,0,.26), rgba(0,0,0,.07) 4%, rgba(0,0,0,0) 11%); }
   .shade { position: absolute; inset: 0; background: #1a0610; opacity: 0; pointer-events: none; z-index: 2; }
 
   /* voice note hotspots */
-  .hot { position: absolute; z-index: 5; border-radius: 999px; cursor: pointer; overflow: hidden; }
-  .hot .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(214, 40, 110, .28); pointer-events: none; }
-  .hot::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 rgba(233, 64, 130, .75); animation: ping 1.8s ease-out infinite; }
-  .hot.playing::before { animation: none; box-shadow: 0 0 0 2px rgba(233, 64, 130, .9), 0 0 14px 2px rgba(233, 64, 130, .6); }
-  .hot { overflow: visible; }
-  .hot .fill { border-radius: inherit; }
+  .hot { position: absolute; z-index: 5; border-radius: 999px; cursor: pointer; }
   .hot::after { content: ""; position: absolute; inset: -8px; }
+  .hot .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; background: rgba(214, 40, 110, .28); pointer-events: none; }
+  .hot::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 rgba(233, 64, 130, .75); animation: ping 1.8s ease-out infinite; pointer-events: none; }
+  .hot.playing::before { animation: none; box-shadow: 0 0 0 2px rgba(233, 64, 130, .9), 0 0 14px 2px rgba(233, 64, 130, .6); }
   .hot .ico { position: absolute; left: 1.2%; top: 5%; height: 90%; aspect-ratio: 1; border-radius: 50%; display: none; align-items: center; justify-content: center; gap: 13%; background: linear-gradient(135deg, #f071a8, #c8397b); box-shadow: 0 2px 6px rgba(160,30,90,.35); pointer-events: none; }
   .hot.playing .ico { display: flex; }
   .hot .ico i { display: block; width: 13%; height: 42%; background: #fff; border-radius: 2px; }
   @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(233,64,130,.7); } 80%, 100% { box-shadow: 0 0 0 12px rgba(233,64,130,0); } }
 
-  /* controls */
-  .btn {
-    position: fixed; z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
-    background: rgba(255, 227, 236, .14); color: var(--ink); font-size: 20px; line-height: 1;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center; transition: background .2s, opacity .2s;
-  }
-  .btn:hover { background: rgba(255, 227, 236, .28); }
+  /* caption + arrows under the page */
+  .nav { width: max(var(--W), 250px); max-width: 100vw; margin-top: 14px; padding: 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cap { flex: 1; text-align: center; font-size: clamp(18px, 4.6vw, 24px); letter-spacing: .02em; color: var(--ink); white-space: nowrap; }
+  .btn { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; background: rgba(255,227,236,.14); color: var(--ink); font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .2s, opacity .2s; }
+  .btn:hover { background: rgba(255,227,236,.28); }
   .btn:focus-visible { outline: 2px solid #ff9ec0; outline-offset: 2px; }
   .btn[disabled] { opacity: .25; cursor: default; }
-  #prev { left: max(10px, env(safe-area-inset-left)); top: 50%; margin-top: -22px; }
-  #next { right: max(10px, env(safe-area-inset-right)); top: 50%; margin-top: -22px; }
-  .where { display: none; position: fixed; z-index: 20; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); text-align: center; font-size: 13px; letter-spacing: .04em; color: rgba(255,227,236,.65); pointer-events: none; }
-
-  /* loader + rotate hint */
 
   /* loading screen */
-  .loader, .rotate {
-    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-    background: radial-gradient(ellipse at 50% 40%, #4a2a1c 0%, #35190f 55%, #22120c 100%);
-  }
-  .loader { z-index: 50; transition: opacity .9s ease; }
+  .loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity .9s ease;
+    background: radial-gradient(ellipse at 50% 40%, #4a2a1c 0%, #35190f 55%, #22120c 100%); }
   .loader.hide { opacity: 0; pointer-events: none; }
-  .rotate { display: none; z-index: 40; padding: 30px; }
-  @media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } }
-  .phone { position: relative; width: 52px; height: 92px; border: 4px solid #fff; border-radius: 14px; margin-bottom: 26px; animation: turn 2.6s ease-in-out infinite; }
+  .phone { position: relative; width: 52px; height: 92px; border: 4px solid #fff; border-radius: 14px; margin-bottom: 26px; animation: bob 2.2s ease-in-out infinite; }
   .phone::after { content: ""; position: absolute; top: 7px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: rgba(255,255,255,.7); }
-  @keyframes turn { 0%, 12% { transform: rotate(0deg); } 45%, 72% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
-  .ttl { margin: 0; font: 400 clamp(28px, 4.6vw, 46px)/1.15 "Playfair Display", Georgia, "Times New Roman", serif; color: #fff; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .ttl { margin: 0; font: 400 clamp(28px, 6vw, 46px)/1.15 "Playfair Display", Georgia, "Times New Roman", serif; color: #fff; padding: 0 20px; }
   .bar { width: min(560px, 72vw); height: 17px; margin-top: 34px; border-radius: 9px; background: rgba(255,255,255,.18); overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; border-radius: 9px; background: linear-gradient(90deg, #ffe9ef, #fff); }
   .pct { margin-top: 26px; font: 700 20px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .06em; color: #fff; }
-  @media (prefers-reduced-motion: reduce) { .phone { animation: none; transform: rotate(-90deg); } }
-  @media (prefers-reduced-motion: reduce) { .hot::before { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .phone, .hot::before { animation: none; } }
 </style>
 </head>
 <body>
 
 <div class="stage" id="stage">
-  <div class="wrap" id="wrap">
-    <div class="shadow" id="shadow"></div>
-    <div class="book" id="book"></div>
+  <div class="col">
+    <div class="wrap" id="wrap">
+      <div class="shadow"></div>
+      <div class="book" id="book"></div>
+    </div>
+    <div class="nav">
+      <button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
+      <div class="cap" id="cap">Cover Page</div>
+      <button class="btn" id="next" aria-label="Agla page">&#8250;</button>
+    </div>
   </div>
 </div>
 
-<button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
-<button class="btn" id="next" aria-label="Agla page">&#8250;</button>
-<div class="where" id="where"></div>
-
 <div class="loader" id="loader">
   <div class="phone"></div>
-  <h1 class="ttl">Rotate your screen</h1>
+  <h1 class="ttl">Opening your book</h1>
   <div class="bar"><i id="barfill"></i></div>
   <div class="pct" id="pct">0%</div>
 </div>
-<div class="rotate"><div class="phone"></div><h1 class="ttl">Rotate your screen</h1></div>
 
 <script>
 /* =====================================================================
@@ -120,7 +99,7 @@ const CONFIG = {
   cover: "coverpage.png",
   end:   "theend.png",
 
-  pageCount: 17,                 // page1.png ... page17.png
+  pageCount: 17,                 // page1.png ... page17.png (page18 dalna ho toh 18 likho)
   pagePattern: "page{n}.png",
 
   ratio: 0.714,                  // page ki width / height
@@ -137,24 +116,21 @@ const CONFIG = {
 };
 
 /* =====================================================================
-   BOOK ENGINE
+   BOOK ENGINE  (portrait, ek time pe ek page)
    ===================================================================== */
 (function () {
   const $ = (id) => document.getElementById(id);
-  const stage = $("stage"), wrap = $("wrap"), book = $("book"), shadow = $("shadow");
-  const btnPrev = $("prev"), btnNext = $("next"), where = $("where");
+  const stage = $("stage"), wrap = $("wrap"), book = $("book");
+  const btnPrev = $("prev"), btnNext = $("next"), cap = $("cap");
 
   let W = 300, H = 420;
 
-  // ---- leaves: cover, page1..pageN, (blank if odd), end ----
+  // leaf 0 = cover, leaf n = page n, last leaf = end
   const leaves = [CONFIG.cover];
   for (let n = 1; n <= CONFIG.pageCount; n++) leaves.push(CONFIG.pagePattern.replace("{n}", n));
-  if (leaves.length % 2 === 0) leaves.push(null);   // pages odd hon toh ek blank page
   leaves.push(CONFIG.end);
-  // total leaves is even => sheets = leaves/2
-  const N = leaves.length / 2;
+  const N = leaves.length;
 
-  // ---- build sheets ----
   const S = [];
   function makeFace(src, cls) {
     const f = document.createElement("div");
@@ -172,53 +148,39 @@ const CONFIG = {
   }
   for (let i = 0; i < N; i++) {
     const el = document.createElement("div"); el.className = "sheet";
-    const front = makeFace(leaves[2 * i], "front");
-    const back = makeFace(leaves[2 * i + 1], "back");
+    const front = makeFace(leaves[i], "front");
+    const back = makeFace(null, "back");
     el.appendChild(front); el.appendChild(back);
     book.appendChild(el);
-    S.push({ el, front, back, a: 0, z: 0 });
+    S.push({ el, front, back, a: 0, z: 0, far: false });
   }
 
-  // ---- state ----
-  let cur = 0;          // kitni sheets palat chuki hain
+  let cur = 0;        // abhi dikhne wala leaf (= kitni sheets palat chuki hain)
   let busy = false;
-
-  function faceOf(leafIndex) { const s = S[leafIndex >> 1]; return leafIndex % 2 === 0 ? s.front : s.back; }
+  const lastIdx = N - 1;
 
   function setAngle(i, a) {
     const s = S[i];
     s.a = a;
     s.el.style.transform = "translateZ(" + (s.z * 0.3) + "px) rotateY(" + (-a) + "deg)";
-    const t = Math.sin((a / 180) * Math.PI);          // 0 flat, 1 edge-on
+    s.el.style.visibility = (a >= 179.5 || s.far) ? "hidden" : "visible";
+    const t = Math.sin((a / 180) * Math.PI);
     s.front._shade.style.opacity = a < 90 ? (t * 0.45).toFixed(3) : 0;
     s.back._shade.style.opacity = a >= 90 ? (t * 0.45).toFixed(3) : 0;
-    shift();
   }
-
-  function shift() {
-    const a0 = S[0].a, aL = S[N - 1].a;
-    const x = W * (-0.5 * (1 - a0 / 180) + 0.5 * (aL / 180));
-    wrap.style.transform = "translateX(" + x.toFixed(2) + "px)";
-    const left = W * (1 - a0 / 180);
-    const right = W + W * (1 - aL / 180);
-    shadow.style.left = left + "px";
-    shadow.style.width = Math.max(0, right - left) + "px";
-  }
-
   function layout(topIndex) {
     for (let i = 0; i < N; i++) {
-      S[i].z = i < cur ? i + 1 : N - i;
+      S[i].z = N - i;
+      S[i].far = i > cur + 1;
     }
-    if (typeof topIndex === "number") S[topIndex].z = N + 6;
+    if (typeof topIndex === "number") { S[topIndex].z = N + 6; S[topIndex].far = false; }
     for (let i = 0; i < N; i++) setAngle(i, S[i].a);
   }
 
   function ui() {
-    btnPrev.disabled = cur === 0;
-    btnNext.disabled = cur === N;
-    if (cur === 0) where.textContent = "";
-    else if (cur === N) where.textContent = "The End";
-    else where.textContent = (2 * cur - 1) + " – " + (2 * cur);
+    btnPrev.disabled = cur <= 0;
+    btnNext.disabled = cur >= lastIdx;
+    cap.textContent = cur === 0 ? "Cover Page" : (cur === lastIdx ? "End Page" : "Page " + cur);
   }
 
   // ---- animation ----
@@ -226,8 +188,7 @@ const CONFIG = {
   function animate(i, to, dur, done) {
     const from = S[i].a, t0 = performance.now();
     busy = true;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) dur = 1;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) dur = 1;
     (function step(now) {
       const p = Math.min(1, (now - t0) / dur);
       setAngle(i, from + (to - from) * ease(p));
@@ -235,54 +196,50 @@ const CONFIG = {
       else { busy = false; done && done(); }
     })(t0);
   }
-  const durFor = (from, to) => Math.max(260, Math.abs(to - from) / 180 * 900);
+  const durFor = (from, to) => Math.max(260, Math.abs(to - from) / 180 * 800);
+
+  function onCommit() { startBgm(); flipSound(); stopVN(); }
 
   function goNext() {
-    if (busy || cur >= N) return;
+    if (busy || cur >= lastIdx) return;
     const i = cur;
-    onCommit();
-    layout(i);
+    onCommit(); layout(i);
     animate(i, 180, durFor(S[i].a, 180), () => { cur = i + 1; layout(); ui(); });
   }
   function goPrev() {
     if (busy || cur <= 0) return;
     const i = cur - 1;
-    onCommit();
-    layout(i);
+    onCommit(); layout(i);
     animate(i, 0, durFor(S[i].a, 0), () => { cur = i; layout(); ui(); });
   }
-  function onCommit() { startBgm(); flipSound(); stopVN(); }
 
-  // ---- drag / swipe ----
+  // ---- swipe / tap ----
   let drag = null;
-  function spineX() { const r = book.getBoundingClientRect(); return r.left + r.width / 2; }
-
   stage.addEventListener("pointerdown", (e) => {
     if (busy || e.target.closest(".hot, .btn")) return;
-    const r = book.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-    const side = e.clientX >= spineX() ? "next" : "prev";
-    if (side === "next" && cur >= N) return;
-    if (side === "prev" && cur <= 0) return;
-    drag = { side, sx: e.clientX, sy: e.clientY, lx: e.clientX, lt: performance.now(), vx: 0, moved: false, id: e.pointerId, t0: performance.now() };
+    const r = wrap.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    drag = { sx: e.clientX, id: e.pointerId, lx: e.clientX, lt: performance.now(), vx: 0, moved: false, side: null, i: -1, inside, cx: r.left + r.width / 2 };
     try { stage.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
   stage.addEventListener("pointermove", (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.sx;
-    if (!drag.moved && Math.abs(dx) > 6) {
-      drag.moved = true;
-      drag.i = drag.side === "next" ? cur : cur - 1;
+    if (!drag.moved) {
+      if (Math.abs(dx) < 6) return;
+      const side = dx < 0 ? "next" : "prev";
+      if ((side === "next" && cur >= lastIdx) || (side === "prev" && cur <= 0)) return;
+      drag.moved = true; drag.side = side;
+      drag.i = side === "next" ? cur : cur - 1;
       layout(drag.i);
       stage.classList.add("dragging");
     }
-    if (!drag.moved) return;
     const now = performance.now();
     const dt = Math.max(1, now - drag.lt);
     drag.vx = 0.8 * drag.vx + 0.2 * ((e.clientX - drag.lx) / dt);
     drag.lx = e.clientX; drag.lt = now;
-    const k = Math.min(1, Math.max(0, (drag.side === "next" ? -dx : dx) / (W * 1.5)));
+    const k = Math.min(1, Math.max(0, (drag.side === "next" ? -dx : dx) / (W * 0.9)));
     setAngle(drag.i, drag.side === "next" ? k * 180 : 180 - k * 180);
   });
 
@@ -291,21 +248,18 @@ const CONFIG = {
     const d = drag; drag = null;
     stage.classList.remove("dragging");
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
-    if (!d.moved) {                       // simple tap
-      if (e.type === "pointerup") (d.side === "next" ? goNext : goPrev)();
+    if (!d.moved) {
+      if (e.type === "pointerup" && d.inside) { (e.clientX >= d.cx ? goNext : goPrev)(); }
       return;
     }
     const i = d.i, a = S[i].a;
-    let commit;
-    if (d.side === "next") commit = a > 55 || d.vx < -0.45;
-    else commit = (180 - a) > 55 || d.vx > 0.45;
-    if (d.side === "next") {
-      if (commit) { onCommit(); animate(i, 180, durFor(a, 180), () => { cur = i + 1; layout(); ui(); }); }
-      else animate(i, 0, durFor(a, 0), () => { layout(); });
-    } else {
-      if (commit) { onCommit(); animate(i, 0, durFor(a, 0), () => { cur = i; layout(); ui(); }); }
-      else animate(i, 180, durFor(a, 180), () => { layout(); });
-    }
+    const commit = d.side === "next" ? (a > 55 || d.vx < -0.45) : ((180 - a) > 55 || d.vx > 0.45);
+    if (commit) onCommit();
+    const to = d.side === "next" ? (commit ? 180 : 0) : (commit ? 0 : 180);
+    animate(i, to, durFor(a, to), () => {
+      if (commit) cur = d.side === "next" ? i + 1 : i;
+      layout(); ui();
+    });
   }
   stage.addEventListener("pointerup", endDrag);
   stage.addEventListener("pointercancel", endDrag);
@@ -313,32 +267,34 @@ const CONFIG = {
   btnNext.addEventListener("click", goNext);
   btnPrev.addEventListener("click", goPrev);
   window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goNext(); }
-    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goPrev(); }
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goNext(); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goPrev(); }
   });
 
-  // ---- sizing ----
+  // ---- sizing: portrait page, caption neeche ----
   function fit() {
     const vw = window.innerWidth, vh = window.innerHeight;
-    H = vh * 0.97; W = H * CONFIG.ratio;
-    if (W * 2 > vw * 0.985) { W = (vw * 0.985) / 2; H = W / CONFIG.ratio; }
+    H = vh - 96;
+    W = H * CONFIG.ratio;
+    if (W > vw * 0.96) { W = vw * 0.96; H = W / CONFIG.ratio; }
     const r = document.documentElement.style;
     r.setProperty("--W", W.toFixed(1) + "px");
     r.setProperty("--H", H.toFixed(1) + "px");
-    shift();
   }
   window.addEventListener("resize", fit);
+  window.addEventListener("orientationchange", () => setTimeout(fit, 250));
 
-  /* ================= MUSIC ================= */
+  /* ================= MUSIC (loop, band nahi hota) ================= */
   const bgmList = [].concat(CONFIG.bgm); let bgmIdx = 0;
   const bgm = new Audio(bgmList[0]);
   bgm.loop = true; bgm.preload = "auto"; bgm.volume = 0;
-  let bgmStarted = false, musicOn = true /* hamesha on */, vnPlaying = false, volTimer = null;
+  let bgmStarted = false, vnPlaying = false, volTimer = null;
+  const tryPlay = () => { if (vnPlaying) return; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); };
 
   bgm.addEventListener("error", () => {
-    if (++bgmIdx < bgmList.length) { bgm.src = bgmList[bgmIdx]; bgm.load(); if (bgmStarted) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }
+    if (++bgmIdx < bgmList.length) { bgm.src = bgmList[bgmIdx]; bgm.load(); if (bgmStarted) tryPlay(); }
   });
-  function targetVol() { return !musicOn ? 0 : (vnPlaying ? CONFIG.bgmVolume * 0.18 : CONFIG.bgmVolume); }
+  function targetVol() { return vnPlaying ? 0 : CONFIG.bgmVolume; }
   function fadeTo(v, ms) {
     clearInterval(volTimer);
     const from = bgm.volume, t0 = performance.now();
@@ -348,21 +304,20 @@ const CONFIG = {
       if (p >= 1) clearInterval(volTimer);
     }, 40);
   }
-  // music band nahi ho sakta: koi bhi tap/key pe shuru, aur ruke toh phir chalu
-  ["pointerdown", "pointerup", "keydown", "touchend"].forEach((ev) =>
-    window.addEventListener(ev, () => { if (!bgmStarted) startBgm(); else if (bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }, { passive: true }));
-  bgm.addEventListener("pause", () => { if (bgmStarted && !document.hidden) setTimeout(() => { if (bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }, 200); });
-  bgm.addEventListener("ended", () => { bgm.currentTime = 0; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && bgmStarted && bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } });
   function startBgm() {
-    if (bgmStarted) return;
+    if (bgmStarted || vnPlaying) return;
     bgmStarted = true;
-    const p = bgm.play();
-    if (p && p.catch) p.catch(() => { bgmStarted = false; });
+    const q = bgm.play();
+    if (q && q.catch) q.catch(() => { bgmStarted = false; });
     fadeTo(targetVol(), 2500);
   }
+  ["pointerdown", "pointerup", "keydown", "touchend"].forEach((ev) =>
+    window.addEventListener(ev, () => { if (!bgmStarted) startBgm(); else if (bgm.paused) tryPlay(); }, { passive: true }));
+  bgm.addEventListener("pause", () => { if (bgmStarted && !document.hidden) setTimeout(() => { if (bgm.paused) tryPlay(); }, 200); });
+  bgm.addEventListener("ended", () => { bgm.currentTime = 0; tryPlay(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && bgmStarted && bgm.paused) tryPlay(); });
 
-  /* ================= PAGE TURN SOUND (synth, no file needed) ================= */
+  /* ================= PAGE TURN SOUND (synth) ================= */
   let actx = null;
   function flipSound() {
     try {
@@ -371,10 +326,7 @@ const CONFIG = {
       const len = Math.floor(actx.sampleRate * 0.45);
       const buf = actx.createBuffer(1, len, actx.sampleRate);
       const d = buf.getChannelData(0);
-      for (let k = 0; k < len; k++) {
-        const t = k / len;
-        d[k] = (Math.random() * 2 - 1) * Math.sin(Math.PI * t) * (1 - t * 0.5);
-      }
+      for (let k = 0; k < len; k++) { const t = k / len; d[k] = (Math.random() * 2 - 1) * Math.sin(Math.PI * t) * (1 - t * 0.5); }
       const src = actx.createBufferSource(); src.buffer = buf;
       const bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2200; bp.Q.value = 0.6;
       const g = actx.createGain(); g.gain.value = 0.10;
@@ -384,8 +336,13 @@ const CONFIG = {
   }
 
   /* ================= VOICE NOTES ================= */
-  let activeVN = null;   // { audio, el }
-  function stopVN() {
+  let activeVN = null;
+  function resumeBgm() {
+    if (!bgmStarted) return;
+    tryPlay();
+    fadeTo(targetVol(), 900);
+  }
+  function stopVN(noResume) {
     if (!activeVN) return;
     activeVN.audio.pause();
     activeVN.audio.currentTime = 0;
@@ -393,23 +350,24 @@ const CONFIG = {
     activeVN.fill.style.width = "0";
     activeVN = null;
     vnPlaying = false;
-    if (bgmStarted) fadeTo(targetVol(), 500);
+    if (!noResume) resumeBgm();        // VN khatam => bgm wapas chalu
   }
   function toggleVN(vn) {
     if (activeVN && activeVN.vn === vn) { stopVN(); return; }
-    stopVN();
-    startBgm();
+    stopVN(true);
     vn.audio.currentTime = 0;
-    const p = vn.audio.play();
-    if (p && p.catch) p.catch(() => {});
+    const q = vn.audio.play();
+    if (q && q.catch) q.catch(() => {});
     vn.el.classList.add("playing");
     activeVN = vn;
     vnPlaying = true;
-    if (bgmStarted) fadeTo(targetVol(), 400);
+    // VN ke dauran bgm poori tarah band (fade out phir pause)
+    fadeTo(0, 300);
+    setTimeout(() => { if (vnPlaying) bgm.pause(); }, 330);
   }
   (CONFIG.voiceNotes || []).forEach((cfg) => {
-    const face = faceOf(cfg.page);           // leaf index == page number
-    if (!face) return;
+    if (!S[cfg.page]) return;                 // leaf index == page number
+    const face = S[cfg.page].front;
     const el = document.createElement("div");
     el.className = "hot";
     el.style.left = cfg.x + "%"; el.style.top = cfg.y + "%";
@@ -419,21 +377,21 @@ const CONFIG = {
     const ico = document.createElement("div"); ico.className = "ico"; ico.innerHTML = "<i></i><i></i>"; el.appendChild(ico);
     const audio = new Audio(cfg.src); audio.preload = "none";
     const vn = { audio, el, fill };
+    activeVNRef(vn);
     audio.addEventListener("timeupdate", () => { if (audio.duration) fill.style.width = (audio.currentTime / audio.duration * 100) + "%"; });
-    audio.addEventListener("ended", () => { if (activeVN === vn) stopVN(); });
+    audio.addEventListener("ended", () => { if (activeVN && activeVN.vn === vn) stopVN(); });
     el.addEventListener("pointerdown", (e) => e.stopPropagation());
     el.addEventListener("click", (e) => { e.stopPropagation(); toggleVN(vn); });
     face.appendChild(el);
   });
+  function activeVNRef(vn) { vn.vn = vn; }
 
-  /* ================= PRELOAD + START ================= */
+  /* ================= PRELOAD + LOADING SCREEN ================= */
   function preload() {
     const list = leaves.filter(Boolean);
-    let done = 0;
     return Promise.all(list.map((src) => new Promise((res) => {
       const im = new Image();
-      const fin = () => { done++; res(); };
-      im.onload = fin; im.onerror = fin; im.src = src;
+      im.onload = res; im.onerror = res; im.src = src;
     })));
   }
 
@@ -442,18 +400,18 @@ const CONFIG = {
   document.addEventListener("dblclick", (e) => e.preventDefault());
 
   fit(); layout(); ui();
-  // ---- loading screen: 0 -> 100% in about 8 seconds ----
-  const LOAD_MS = 8000;
+
+  const LOAD_MS = 8000;                                   // loading time (ms)
   let allLoaded = false;
   preload().then(() => { allLoaded = true; });
-  setTimeout(() => { allLoaded = true; }, 25000);        // safety
+  setTimeout(() => { allLoaded = true; }, 25000);         // safety
   const barFill = $("barfill"), pctEl = $("pct"), loader = $("loader");
   const tStart = performance.now();
   function loadTick(now) {
     const p = Math.min(1, (now - tStart) / LOAD_MS);
     const e = 0.4 * p + 0.6 * (p * p * (3 - 2 * p));
     let pct = Math.floor(e * 100);
-    if (p >= 1 && !allLoaded) pct = 99;                  // images abhi aa rahi hain toh 99% pe ruko
+    if (p >= 1 && !allLoaded) pct = 99;
     if (p >= 1 && allLoaded) {
       barFill.style.width = "100%"; pctEl.textContent = "100%";
       setTimeout(() => { loader.classList.add("hide"); setTimeout(() => { loader.style.display = "none"; }, 1000); }, 450);
