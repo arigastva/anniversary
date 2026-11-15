@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap" rel="stylesheet">
-<title>Meri Jaan ka Book</title>
+<title>FUCK ME</title>
 <style>
   :root { --W: 300px; --H: 420px; --ink: #ffe3ec; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -66,9 +66,7 @@
   .btn[disabled] { opacity: .25; cursor: default; }
   #prev { left: max(10px, env(safe-area-inset-left)); top: 50%; margin-top: -22px; }
   #next { right: max(10px, env(safe-area-inset-right)); top: 50%; margin-top: -22px; }
-  #music { right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); }
-  #music.off { opacity: .5; text-decoration: line-through; }
-  .where { position: fixed; z-index: 20; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); text-align: center; font-size: 13px; letter-spacing: .04em; color: rgba(255,227,236,.65); pointer-events: none; }
+  .where { display: none; position: fixed; z-index: 20; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); text-align: center; font-size: 13px; letter-spacing: .04em; color: rgba(255,227,236,.65); pointer-events: none; }
 
   /* loader + rotate hint */
 
@@ -103,7 +101,6 @@
 
 <button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
 <button class="btn" id="next" aria-label="Agla page">&#8250;</button>
-<button class="btn" id="music" aria-label="Music on/off" title="Music">&#9835;</button>
 <div class="where" id="where"></div>
 
 <div class="loader" id="loader">
@@ -145,14 +142,14 @@ const CONFIG = {
 (function () {
   const $ = (id) => document.getElementById(id);
   const stage = $("stage"), wrap = $("wrap"), book = $("book"), shadow = $("shadow");
-  const btnPrev = $("prev"), btnNext = $("next"), btnMusic = $("music"), where = $("where");
+  const btnPrev = $("prev"), btnNext = $("next"), where = $("where");
 
   let W = 300, H = 420;
 
   // ---- leaves: cover, page1..pageN, (blank if odd), end ----
   const leaves = [CONFIG.cover];
   for (let n = 1; n <= CONFIG.pageCount; n++) leaves.push(CONFIG.pagePattern.replace("{n}", n));
-  if (leaves.length % 2 === 1) leaves.push(null);   // odd ho toh blank page
+  if (leaves.length % 2 === 0) leaves.push(null);   // pages odd hon toh ek blank page
   leaves.push(CONFIG.end);
   // total leaves is even => sheets = leaves/2
   const N = leaves.length / 2;
@@ -336,7 +333,7 @@ const CONFIG = {
   const bgmList = [].concat(CONFIG.bgm); let bgmIdx = 0;
   const bgm = new Audio(bgmList[0]);
   bgm.loop = true; bgm.preload = "auto"; bgm.volume = 0;
-  let bgmStarted = false, musicOn = true, vnPlaying = false, volTimer = null;
+  let bgmStarted = false, musicOn = true /* hamesha on */, vnPlaying = false, volTimer = null;
 
   bgm.addEventListener("error", () => {
     if (++bgmIdx < bgmList.length) { bgm.src = bgmList[bgmIdx]; bgm.load(); if (bgmStarted) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }
@@ -351,6 +348,12 @@ const CONFIG = {
       if (p >= 1) clearInterval(volTimer);
     }, 40);
   }
+  // music band nahi ho sakta: koi bhi tap/key pe shuru, aur ruke toh phir chalu
+  ["pointerdown", "pointerup", "keydown", "touchend"].forEach((ev) =>
+    window.addEventListener(ev, () => { if (!bgmStarted) startBgm(); else if (bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }, { passive: true }));
+  bgm.addEventListener("pause", () => { if (bgmStarted && !document.hidden) setTimeout(() => { if (bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } }, 200); });
+  bgm.addEventListener("ended", () => { bgm.currentTime = 0; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && bgmStarted && bgm.paused) { const q = bgm.play(); if (q && q.catch) q.catch(() => {}); } });
   function startBgm() {
     if (bgmStarted) return;
     bgmStarted = true;
@@ -358,12 +361,6 @@ const CONFIG = {
     if (p && p.catch) p.catch(() => { bgmStarted = false; });
     fadeTo(targetVol(), 2500);
   }
-  btnMusic.addEventListener("click", () => {
-    musicOn = !musicOn;
-    btnMusic.classList.toggle("off", !musicOn);
-    if (musicOn && !bgmStarted) startBgm();
-    fadeTo(targetVol(), 400);
-  });
 
   /* ================= PAGE TURN SOUND (synth, no file needed) ================= */
   let actx = null;
