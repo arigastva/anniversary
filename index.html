@@ -22,29 +22,32 @@
   .stage.dragging { cursor: grabbing; }
   .col { display: flex; flex-direction: column; align-items: center; }
 
-  .wrap { position: relative; width: var(--W); height: var(--H); perspective: 2200px; }
-  .shadow { position: absolute; left: 2%; width: 100%; bottom: -20px; height: 22px; background: radial-gradient(ellipse at center, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 70%); filter: blur(5px); pointer-events: none; }
+  /* wrap = poora khula book (2 pages), perspective yahin hai. JS isse left-right sarkata hai */
+  .wrap { position: relative; width: calc(var(--W) * 2); height: var(--H); perspective: 2400px; flex: none; }
+  .shadow { position: absolute; bottom: -20px; height: 22px; left: 0; width: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 70%); filter: blur(5px); pointer-events: none; }
+  .board { position: absolute; top: -6px; bottom: -6px; left: 0; width: 0; border-radius: 13px; background: linear-gradient(145deg, #ec4a8a, #d92f78); box-shadow: 0 14px 34px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,190,215,.45); }
+  .stack { position: absolute; top: 4px; bottom: -14px; left: 0; width: 0; border-radius: 6px 15px 15px 6px; background: #fff3ef; box-shadow: 3px 3px 0 #f5d2dc, 5px 5px 0 #fff4f2, 7px 7px 0 #eec3d0; }
+  .ribbon { position: absolute; left: 0; bottom: -40px; width: 17px; height: 46px; background: linear-gradient(90deg, #b30f2c, #e92a4b 50%, #a80d27); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); }
   .book { position: absolute; inset: 0; transform-style: preserve-3d; }
+  .hint { position: absolute; left: 50%; right: 0; bottom: 5%; z-index: 30; text-align: center; pointer-events: none; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.7); font: 600 clamp(11px, 3vw, 15px)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .24em; transition: opacity .35s; }
+  .hint.off { opacity: 0; }
 
-  .sheet { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: left center; transform-style: preserve-3d; }
-  .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 0 7px 7px 0; box-shadow: 2px 2px 10px rgba(0,0,0,.3); }
+  .sheet { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; transform-origin: left center; transform-style: preserve-3d; }
+  .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .face.front { border-radius: 0 7px 7px 0; }
   .face.back { transform: rotateY(180deg); border-radius: 7px 0 0 7px; }
   .face img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
   .face .missing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12%; color: #b04068; font-size: 14px; background: #fff0f4; }
   .face::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
-  .face.front::after { background: linear-gradient(to right, rgba(0,0,0,.26), rgba(0,0,0,.07) 4%, rgba(0,0,0,0) 11%); }
-  .face.back::after  { background: linear-gradient(to left,  rgba(0,0,0,.26), rgba(0,0,0,.07) 4%, rgba(0,0,0,0) 11%); }
+  .face.front::after { background: linear-gradient(to right, rgba(0,0,0,.28), rgba(0,0,0,.08) 4%, rgba(0,0,0,0) 12%); }
+  .face.back::after  { background: linear-gradient(to left,  rgba(0,0,0,.28), rgba(0,0,0,.08) 4%, rgba(0,0,0,0) 12%); }
   .shade { position: absolute; inset: 0; background: #1a0610; opacity: 0; pointer-events: none; z-index: 2; }
+  .under { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; }
+  .face.front .under { background: linear-gradient(to right, rgba(20,4,10,.95), rgba(20,4,10,0) 75%); }
+  .face.back .under { background: linear-gradient(to left, rgba(20,4,10,.95), rgba(20,4,10,0) 75%); }
 
-  /* hardcover frame, page-stack edge, ribbon (reference look) */
-  .board { position: absolute; inset: -6px; border-radius: 13px; background: linear-gradient(145deg, #ec4a8a, #d92f78); box-shadow: 0 14px 34px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,190,215,.45); }
-  .stack { position: absolute; inset: 4px -14px -14px 4px; border-radius: 6px 15px 15px 6px; background: #fff3ef; box-shadow: 3px 3px 0 #f5d2dc, 5px 5px 0 #fff4f2, 7px 7px 0 #eec3d0; }
-  .ribbon { position: absolute; left: 68%; bottom: -40px; width: 17px; height: 46px; background: linear-gradient(90deg, #b30f2c, #e92a4b 50%, #a80d27); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); }
-  .hint { position: absolute; left: 0; right: 0; bottom: 5%; z-index: 30; text-align: center; pointer-events: none; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.7); font: 600 clamp(11px, 3.2vw, 15px)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .24em; transition: opacity .35s; }
-  .hint.off { opacity: 0; }
-
-  /* curling page (strips) used while a page is turning */
-  .curl { position: absolute; inset: 0; display: none; transform-style: preserve-3d; pointer-events: none; }
+  /* curling page (strips) – sirf page palatte waqt */
+  .curl { position: absolute; left: 50%; top: 0; width: 50%; height: 100%; display: none; transform-style: preserve-3d; pointer-events: none; }
   .strip { position: absolute; top: 0; height: 100%; transform-origin: left center; transform-style: preserve-3d; }
   .strip.s0 { left: 0; }
   .strip.sc { left: 100%; width: 100%; }
@@ -53,12 +56,11 @@
   .sf.last { border-radius: 0 7px 7px 0; }
   .sb.last { border-radius: 7px 0 0 7px; }
   .sf::after, .sb::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
-  .s0 > .sf::after { background: linear-gradient(to right, rgba(0,0,0,.26), rgba(0,0,0,.07)); }
-  .s0 > .sb::after { background: linear-gradient(to left, rgba(0,0,0,.26), rgba(0,0,0,.07)); }
-  .s1 > .sf::after { background: linear-gradient(to right, rgba(0,0,0,.07), rgba(0,0,0,0)); }
-  .s1 > .sb::after { background: linear-gradient(to left, rgba(0,0,0,.07), rgba(0,0,0,0)); }
+  .s0 > .sf::after { background: linear-gradient(to right, rgba(0,0,0,.28), rgba(0,0,0,.08)); }
+  .s0 > .sb::after { background: linear-gradient(to left, rgba(0,0,0,.28), rgba(0,0,0,.08)); }
+  .s1 > .sf::after { background: linear-gradient(to right, rgba(0,0,0,.08), rgba(0,0,0,0)); }
+  .s1 > .sb::after { background: linear-gradient(to left, rgba(0,0,0,.08), rgba(0,0,0,0)); }
   .sh { position: absolute; inset: 0; background: #1a0610; opacity: 0; display: block; z-index: 2; }
-  .under { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; background: linear-gradient(to right, rgba(20,4,10,.95), rgba(20,4,10,0) 75%); }
 
   /* voice note hotspots */
   .hot { position: absolute; z-index: 5; border-radius: 999px; cursor: pointer; }
@@ -71,8 +73,8 @@
   .hot .ico i { display: block; width: 13%; height: 42%; background: #fff; border-radius: 2px; }
   @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(233,64,130,.7); } 80%, 100% { box-shadow: 0 0 0 12px rgba(233,64,130,0); } }
 
-  /* caption + arrows under the page */
-  .nav { width: max(var(--W), 250px); max-width: 100vw; margin-top: 38px; padding: 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  /* caption + arrows */
+  .nav { width: min(calc(100vw - 24px), 460px); margin-top: 38px; padding: 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .cap { flex: 1; text-align: center; font-size: clamp(18px, 4.6vw, 24px); letter-spacing: .02em; color: var(--ink); white-space: nowrap; }
   .btn { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; background: rgba(255,227,236,.14); color: var(--ink); font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .2s, opacity .2s; }
   .btn:hover { background: rgba(255,227,236,.28); }
@@ -98,12 +100,12 @@
 <div class="stage" id="stage">
   <div class="col">
     <div class="wrap" id="wrap">
-      <div class="shadow"></div>
-      <div class="ribbon"></div>
-      <div class="stack"></div>
-      <div class="board"></div>
+      <div class="shadow" id="shadow"></div>
+      <div class="ribbon" id="ribbon"></div>
+      <div class="stack" id="stack"></div>
+      <div class="board" id="board"></div>
       <div class="book" id="book"></div>
-      <div class="hint" id="hint">&#9829;</div>
+      <div class="hint" id="hint">TAP TO OPEN &#9829;</div>
     </div>
     <div class="nav">
       <button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
@@ -132,7 +134,7 @@ const CONFIG = {
   pageCount: 17,                 // page1.png ... page17.png (page18 dalna ho toh 18 likho)
   pagePattern: "page{n}.png",
 
-  ratio: 0.714,                  // page ki width / height
+  ratio: 0.714,                  // ek page ki width / height (image se apne aap set ho jaata hai)
 
   // Background music: in naamon mein se jo file repo mein mile wo chalegi
   bgm: ["bgm.mp3", "music.mp3", "bgmusic.mp3", "background.mp3", "song.mp3"],
@@ -146,47 +148,33 @@ const CONFIG = {
 };
 
 /* =====================================================================
-   BOOK ENGINE  (portrait, ek time pe ek page)
+   BOOK ENGINE
+   - Cover aur End akele (single), beech mein 2 pages ka spread
+   - Chhoti screen pe: ek page poora, uske baju wala thoda sa jhalakta hai;
+     us pe tap karo toh woh poora aa jaata hai
    ===================================================================== */
 (function () {
   const $ = (id) => document.getElementById(id);
   const stage = $("stage"), wrap = $("wrap"), book = $("book");
+  const shadow = $("shadow"), board = $("board"), stack = $("stack"), ribbon = $("ribbon");
   const btnPrev = $("prev"), btnNext = $("next"), cap = $("cap"), hint = $("hint");
 
-  let W = 300, H = 420;
-
-  // leaf 0 = cover, leaf n = page n, last leaf = end
+  // leaf 0 = cover, leaf n = page n, (blank agar zaroorat), last leaf = end
   const leaves = [CONFIG.cover];
   for (let n = 1; n <= CONFIG.pageCount; n++) leaves.push(CONFIG.pagePattern.replace("{n}", n));
+  if (leaves.length % 2 === 0) leaves.push(null);       // pages odd hon toh ek blank page
   leaves.push(CONFIG.end);
-  const N = leaves.length;
+  const M = leaves.length;          // even
+  const N = M / 2;                  // sheets
+
+  let W = 300, H = 420, vw = 800, vh = 600;
+  let peek = false;                 // chhoti screen mode
+  const MRG = 16;
+  let PEEK = 44;
 
   const S = [];
-  const K = 14, BEND = 3.4;     // strips ki ginti, aur page kitna mudta hai
-  function buildCurl(src) {
-    const root = document.createElement("div"); root.className = "curl";
-    const strips = [];
-    let parent = root;
-    for (let j = 0; j < K; j++) {
-      const st = document.createElement("div");
-      st.className = "strip " + (j === 0 ? "s0" : "sc") + " s" + j;
-      if (j === 0) st.style.width = (100 / K) + "%";
-      const sf = document.createElement("div"); sf.className = "sf" + (j === K - 1 ? " last" : "");
-      const sb = document.createElement("div"); sb.className = "sb" + (j === K - 1 ? " last" : "");
-      if (src) {
-        sf.style.backgroundImage = "url(\"" + src + "\")";
-        sf.style.backgroundSize = (K * 100) + "% 100%";
-        sf.style.backgroundPosition = (j / (K - 1) * 100) + "% 0";
-      }
-      const shf = document.createElement("i"); shf.className = "sh"; sf.appendChild(shf);
-      const shb = document.createElement("i"); shb.className = "sh"; sb.appendChild(shb);
-      st.appendChild(sf); st.appendChild(sb);
-      parent.appendChild(st);
-      strips.push({ el: st, shf, shb });
-      parent = st;
-    }
-    return { root, strips };
-  }
+  const K = 14, BEND = 3.4;
+
   function makeFace(src, cls) {
     const f = document.createElement("div");
     f.className = "face " + cls;
@@ -197,27 +185,61 @@ const CONFIG = {
       img.onerror = () => { img.remove(); const m = document.createElement("div"); m.className = "missing"; m.textContent = src + " nahi mili"; f.insertBefore(m, f.firstChild); };
       f.appendChild(img);
     }
-    const sh = document.createElement("div"); sh.className = "shade"; f.appendChild(sh);
-    f._shade = sh;
-    if (cls === "front") { const u = document.createElement("div"); u.className = "under"; f.appendChild(u); f._under = u; }
+    const sh = document.createElement("div"); sh.className = "shade"; f.appendChild(sh); f._shade = sh;
+    const u = document.createElement("div"); u.className = "under"; f.appendChild(u); f._under = u;
     return f;
   }
-  for (let i = 0; i < N; i++) {
-    const el = document.createElement("div"); el.className = "sheet";
-    const front = makeFace(leaves[i], "front");
-    const back = makeFace(null, "back");
-    el.appendChild(front); el.appendChild(back);
-    book.appendChild(el);
-    const curl = buildCurl(leaves[i]);
-    book.appendChild(curl.root);
-    S.push({ el, front, back, a: 0, z: 0, far: false, curl: curl.root, strips: curl.strips });
+
+  function buildCurl(srcF, srcB) {
+    const root = document.createElement("div"); root.className = "curl";
+    const strips = [];
+    let parent = root;
+    for (let j = 0; j < K; j++) {
+      const st = document.createElement("div");
+      st.className = "strip " + (j === 0 ? "s0" : "sc") + " s" + j;
+      if (j === 0) st.style.width = (100 / K) + "%";
+      const sf = document.createElement("div"); sf.className = "sf" + (j === K - 1 ? " last" : "");
+      const sb = document.createElement("div"); sb.className = "sb" + (j === K - 1 ? " last" : "");
+      if (srcF) {
+        sf.style.backgroundImage = "url(\"" + srcF + "\")";
+        sf.style.backgroundSize = (K * 100) + "% 100%";
+        sf.style.backgroundPosition = (j / (K - 1) * 100) + "% 0";
+      }
+      if (srcB) {
+        sb.style.backgroundImage = "url(\"" + srcB + "\")";
+        sb.style.backgroundSize = (K * 100) + "% 100%";
+        sb.style.backgroundPosition = ((K - 1 - j) / (K - 1) * 100) + "% 0";
+      }
+      const shf = document.createElement("i"); shf.className = "sh"; sf.appendChild(shf);
+      const shb = document.createElement("i"); shb.className = "sh"; sb.appendChild(shb);
+      st.appendChild(sf); st.appendChild(sb);
+      parent.appendChild(st);
+      strips.push({ el: st, shf, shb });
+      parent = st;
+    }
+    return { root, strips };
   }
 
-  let moving = false;   // sirf page palatte waqt 3D layering; rest pe ek hi page => ekdum sharp image
-  let cur = 0;        // abhi dikhne wala leaf (= kitni sheets palat chuki hain)
-  let busy = false;
-  const lastIdx = N - 1;
+  for (let i = 0; i < N; i++) {
+    const el = document.createElement("div"); el.className = "sheet";
+    const front = makeFace(leaves[2 * i], "front");
+    const back = makeFace(leaves[2 * i + 1], "back");
+    el.appendChild(front); el.appendChild(back);
+    book.appendChild(el);
+    const curl = buildCurl(leaves[2 * i], leaves[2 * i + 1]);
+    book.appendChild(curl.root);
+    S.push({ el, front, back, a: 0, z: 0, far: true, curl: curl.root, strips: curl.strips });
+  }
+  const faceOfLeaf = (k) => (k % 2 === 0 ? S[k / 2].front : S[(k - 1) / 2].back);
 
+  // ---- state ----
+  let cur = 0;          // kitni sheets palat chuki hain (0 = cover band, N = end band)
+  let focus = 0;        // chhoti screen: 0 = left page poora, 1 = right page poora
+  let fo = 0;           // focus ka animated float (0..1)
+  let moving = false;
+  let busy = false;
+
+  /* ---------------- drawing ---------------- */
   function applyCurl(s, a) {
     const rad = a * Math.PI / 180;
     const d = BEND * Math.sin(rad);
@@ -231,72 +253,141 @@ const CONFIG = {
       s.strips[j].shb.style.opacity = phi >= 90 ? (t * 0.42).toFixed(3) : 0;
     }
   }
+
   function setAngle(i, a) {
     const s = S[i];
     s.a = a;
-    const flat = a <= 0.05 && !s.far;
-    const curl = a > 0.05 && a < 179.5 && !s.far;
+    const flat = (a <= 0.05 || a >= 179.95) && !s.far;
+    const curl = a > 0.05 && a < 179.95 && !s.far;
     s.el.style.visibility = flat ? "visible" : "hidden";
-    s.el.style.transform = moving ? "translateZ(" + (s.z * 0.3) + "px)" : "none";
+    if (!moving && a <= 0.05) s.el.style.transform = "none";
+    else s.el.style.transform = (moving ? "translateZ(" + (s.z * 0.3) + "px) " : "") + "rotateY(" + (-a) + "deg)";
     s.curl.style.display = curl ? "block" : "none";
-    const u = S[i + 1];
-    if (u) u.front._under.style.opacity = curl ? (0.34 * Math.sin(a * Math.PI / 180)).toFixed(3) : 0;
+
+    const t = Math.sin(a * Math.PI / 180);
+    s.front._shade.style.opacity = a < 90 ? (t * 0.45).toFixed(3) : 0;
+    s.back._shade.style.opacity = a >= 90 ? (t * 0.45).toFixed(3) : 0;
+
+    const uR = S[i + 1], uL = S[i - 1];
+    if (uR) uR.front._under.style.opacity = curl ? (0.34 * t * (a < 90 ? 1 : 0.35)).toFixed(3) : 0;
+    if (uL) uL.back._under.style.opacity = curl ? (0.34 * t * (a > 90 ? 1 : 0.35)).toFixed(3) : 0;
     if (curl) applyCurl(s, a);
   }
+
+  function render() {
+    const t0 = S[0].a / 180, tL = S[N - 1].a / 180;
+    const center = (vw - 2 * W) / 2;
+    const base = peek ? MRG + fo * (vw - 2 * MRG - 2 * W) : center;
+    const xc = (vw - W) / 2 - W, xe = (vw - W) / 2;
+    const x0 = base + (1 - t0) * (xc - base) + tL * (xe - base);
+    wrap.style.transform = "translateX(" + (x0 - center).toFixed(2) + "px)";
+    const left = W * (1 - t0), right = W + W * (1 - tL);
+    shadow.style.left = left + "px"; shadow.style.width = Math.max(0, right - left) + "px";
+    board.style.left = (left - 6) + "px"; board.style.width = (right - left + 12) + "px";
+    stack.style.left = (left + 4) + "px"; stack.style.width = Math.max(0, right - left + 10) + "px";
+    ribbon.style.left = (right - W * 0.32 - 8) + "px";
+  }
+
   function layout(topIndex) {
     moving = typeof topIndex === "number";
     for (let i = 0; i < N; i++) {
-      S[i].z = N - i;
-      S[i].far = i > cur + (moving ? 1 : 0);
+      S[i].z = i < cur ? i + 1 : N - i;
+      S[i].far = moving ? !(i >= cur - 2 && i <= cur + 1) : !(i >= cur - 1 && i <= cur);
     }
-    if (typeof topIndex === "number") { S[topIndex].z = N + 6; S[topIndex].far = false; }
+    if (moving) { S[topIndex].z = N + 6; S[topIndex].far = false; }
     for (let i = 0; i < N; i++) setAngle(i, S[i].a);
+    render();
   }
 
+  /* ---------------- caption / buttons / hotspots ---------------- */
+  function leafLabel(k) { return leaves[k] == null ? "Blank Page" : "Page " + k; }
+  function capText() {
+    if (cur === 0) return "Cover Page";
+    if (cur >= N) return "End Page";
+    const L = 2 * cur - 1, R = 2 * cur;
+    if (peek) return leafLabel(focus ? R : L);
+    return leaves[R] == null ? "Page " + L : "Page " + L + " \u2013 " + R;
+  }
+  function pageFocused(k) {
+    if (cur === 0) return k === 0;
+    if (cur >= N) return k === M - 1;
+    const L = 2 * cur - 1, R = 2 * cur;
+    return peek ? k === (focus ? R : L) : (k === L || k === R);
+  }
+  const vns = [];
   function ui() {
     btnPrev.disabled = cur <= 0;
-    btnNext.disabled = cur >= lastIdx;
-    cap.textContent = cur === 0 ? "Cover Page" : (cur === lastIdx ? "End Page" : "Page " + cur);
+    btnNext.disabled = cur >= N;
+    cap.textContent = capText();
     hint.classList.toggle("off", cur > 0);
+    vns.forEach((v) => { v.el.style.pointerEvents = pageFocused(v.page) ? "auto" : "none"; });
   }
 
-  // ---- animation ----
+  /* ---------------- animation helpers ---------------- */
   const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
-  function animate(i, to, dur, done) {
-    const from = S[i].a, t0 = performance.now();
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function tween(dur, step, done) {
+    const t0 = performance.now();
     busy = true;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) dur = 1;
-    (function step(now) {
+    if (reduced()) dur = 1;
+    (function frame(now) {
       const p = Math.min(1, (now - t0) / dur);
-      setAngle(i, from + (to - from) * ease(p));
-      if (p < 1) requestAnimationFrame(step);
+      step(ease(p));
+      if (p < 1) requestAnimationFrame(frame);
       else { busy = false; done && done(); }
     })(t0);
   }
-  const durFor = (from, to) => Math.max(300, Math.abs(to - from) / 180 * 1000);
+  const durFor = (from, to) => Math.max(320, Math.abs(to - from) / 180 * 1000);
 
+  // flip ke dauran camera (focus) bhi saath saath sarakta hai
+  function flipApply(i, side, fo0) {
+    return (a) => {
+      if (peek) fo = side === "next" ? fo0 * (1 - a / 180) : fo0 + (1 - fo0) * (1 - a / 180);
+      setAngle(i, a); render();
+    };
+  }
+  function runFlip(i, to, side, fo0, commit) {
+    const from = S[i].a, apply = flipApply(i, side, fo0);
+    tween(durFor(from, to), (e) => apply(from + (to - from) * e), () => {
+      if (commit) { cur = side === "next" ? i + 1 : i; focus = side === "next" ? 0 : 1; }
+      fo = focus;
+      layout(); ui();
+    });
+  }
   function onCommit() { hint.classList.add("off"); startBgm(); flipSound(); stopVN(); }
 
-  function goNext() {
-    if (busy || cur >= lastIdx) return;
-    const i = cur;
-    onCommit(); layout(i);
-    animate(i, 180, durFor(S[i].a, 180), () => { cur = i + 1; layout(); ui(); });
-  }
-  function goPrev() {
-    if (busy || cur <= 0) return;
-    const i = cur - 1;
-    onCommit(); layout(i);
-    animate(i, 0, durFor(S[i].a, 0), () => { cur = i; layout(); ui(); });
+  function panTo(target) {
+    if (busy || focus === target) return;
+    stopVN();
+    const f0 = fo;
+    focus = target;
+    ui();
+    tween(560, (e) => { fo = f0 + (target - f0) * e; render(); }, () => { fo = target; render(); ui(); });
   }
 
-  // ---- swipe / tap ----
+  const canPan = () => peek && cur >= 1 && cur <= N - 1;
+  function next() {
+    if (busy || cur >= N) return;
+    if (canPan() && focus === 0) { panTo(1); return; }
+    const i = cur;
+    onCommit(); layout(i);
+    runFlip(i, 180, "next", fo, true);
+  }
+  function prev() {
+    if (busy || cur <= 0) return;
+    if (canPan() && focus === 1) { panTo(0); return; }
+    const i = cur - 1;
+    onCommit(); layout(i);
+    runFlip(i, 0, "prev", fo, true);
+  }
+
+  /* ---------------- swipe / tap ---------------- */
   let drag = null;
   stage.addEventListener("pointerdown", (e) => {
     if (busy || e.target.closest(".hot, .btn")) return;
     const r = wrap.getBoundingClientRect();
     const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    drag = { sx: e.clientX, id: e.pointerId, lx: e.clientX, lt: performance.now(), vx: 0, moved: false, side: null, i: -1, inside, cx: r.left + r.width / 2 };
+    drag = { sx: e.clientX, id: e.pointerId, lx: e.clientX, lt: performance.now(), vx: 0, moved: false, kind: null, dir: null, i: -1, inside, spine: r.left + W, fo0: focus };
     try { stage.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
@@ -305,20 +396,31 @@ const CONFIG = {
     const dx = e.clientX - drag.sx;
     if (!drag.moved) {
       if (Math.abs(dx) < 6) return;
-      const side = dx < 0 ? "next" : "prev";
-      if ((side === "next" && cur >= lastIdx) || (side === "prev" && cur <= 0)) return;
-      drag.moved = true; drag.side = side;
-      hint.classList.add("off");
-      drag.i = side === "next" ? cur : cur - 1;
-      layout(drag.i);
+      const dir = dx < 0 ? "next" : "prev";
+      if ((dir === "next" && cur >= N) || (dir === "prev" && cur <= 0)) return;
+      drag.dir = dir;
+      drag.kind = (canPan() && ((dir === "next" && focus === 0) || (dir === "prev" && focus === 1))) ? "pan" : "flip";
+      drag.moved = true;
       stage.classList.add("dragging");
+      if (drag.kind === "flip") {
+        drag.i = dir === "next" ? cur : cur - 1;
+        hint.classList.add("off");
+        layout(drag.i);
+        drag.apply = flipApply(drag.i, dir, fo);
+      }
     }
     const now = performance.now();
     const dt = Math.max(1, now - drag.lt);
     drag.vx = 0.8 * drag.vx + 0.2 * ((e.clientX - drag.lx) / dt);
     drag.lx = e.clientX; drag.lt = now;
-    const k = Math.min(1, Math.max(0, (drag.side === "next" ? -dx : dx) / (W * 0.9)));
-    setAngle(drag.i, drag.side === "next" ? k * 180 : 180 - k * 180);
+    if (drag.kind === "pan") {
+      const T = vw - 2 * MRG - 2 * W;                       // negative
+      fo = Math.min(1, Math.max(0, drag.fo0 + dx / T));
+      render();
+    } else {
+      const k = Math.min(1, Math.max(0, Math.abs(dx) / (W * 1.1)));
+      drag.apply(drag.dir === "next" ? k * 180 : 180 - k * 180);
+    }
   });
 
   function endDrag(e) {
@@ -327,37 +429,61 @@ const CONFIG = {
     stage.classList.remove("dragging");
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
     if (!d.moved) {
-      if (e.type === "pointerup" && d.inside) { (e.clientX >= d.cx ? goNext : goPrev)(); }
+      if (e.type === "pointerup" && d.inside) (e.clientX >= d.spine ? next : prev)();
+      return;
+    }
+    if (d.kind === "pan") {
+      const towards = d.fo0 === 0 ? 1 : 0;
+      const prog = Math.abs(fo - d.fo0);
+      const fast = d.dir === "next" ? d.vx < -0.45 : d.vx > 0.45;
+      const commit = prog > 0.3 || fast;
+      const target = commit ? towards : d.fo0;
+      const f0 = fo;
+      if (commit) stopVN();
+      focus = target; ui();
+      tween(Math.max(260, Math.abs(target - f0) * 520), (e2) => { fo = f0 + (target - f0) * e2; render(); }, () => { fo = target; render(); ui(); });
       return;
     }
     const i = d.i, a = S[i].a;
-    const commit = d.side === "next" ? (a > 55 || d.vx < -0.45) : ((180 - a) > 55 || d.vx > 0.45);
+    const commit = d.dir === "next" ? (a > 55 || d.vx < -0.45) : ((180 - a) > 55 || d.vx > 0.45);
+    const to = d.dir === "next" ? (commit ? 180 : 0) : (commit ? 0 : 180);
     if (commit) onCommit();
-    const to = d.side === "next" ? (commit ? 180 : 0) : (commit ? 0 : 180);
-    animate(i, to, durFor(a, to), () => {
-      if (commit) cur = d.side === "next" ? i + 1 : i;
+    const apply = d.apply, from = a;
+    tween(durFor(a, to), (e2) => apply(from + (to - from) * e2), () => {
+      if (commit) { cur = d.dir === "next" ? i + 1 : i; focus = d.dir === "next" ? 0 : 1; }
+      fo = focus;
       layout(); ui();
     });
   }
   stage.addEventListener("pointerup", endDrag);
   stage.addEventListener("pointercancel", endDrag);
 
-  btnNext.addEventListener("click", goNext);
-  btnPrev.addEventListener("click", goPrev);
+  btnNext.addEventListener("click", next);
+  btnPrev.addEventListener("click", prev);
   window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goNext(); }
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goPrev(); }
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " " || e.key === "PageDown") { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); prev(); }
   });
 
-  // ---- sizing: portrait page, caption neeche ----
+  /* ---------------- sizing ---------------- */
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
   function fit() {
-    const vw = window.innerWidth, vh = window.innerHeight;
-    H = vh - 128;
-    W = H * CONFIG.ratio;
-    if (W > vw - 50) { W = vw - 50; H = W / CONFIG.ratio; }
+    vw = window.innerWidth; vh = window.innerHeight;
+    const reserve = Math.min(128, vh * 0.22);
+    const H0 = vh - reserve, W0 = H0 * CONFIG.ratio;
+    if (2 * W0 + 36 <= vw) { peek = false; W = W0; H = H0; }
+    else {
+      peek = true;
+      PEEK = clamp(vw * 0.12, 30, 60);
+      W = Math.min(vw - MRG - PEEK, W0);
+      H = W / CONFIG.ratio;
+    }
     const r = document.documentElement.style;
     r.setProperty("--W", W.toFixed(1) + "px");
     r.setProperty("--H", H.toFixed(1) + "px");
+    if (!peek) { fo = 0; }
+    else fo = focus;
+    render(); ui();
   }
   window.addEventListener("resize", fit);
   window.addEventListener("orientationchange", () => setTimeout(fit, 250));
@@ -415,11 +541,7 @@ const CONFIG = {
 
   /* ================= VOICE NOTES ================= */
   let activeVN = null;
-  function resumeBgm() {
-    if (!bgmStarted) return;
-    tryPlay();
-    fadeTo(targetVol(), 900);
-  }
+  function resumeBgm() { if (!bgmStarted) return; tryPlay(); fadeTo(targetVol(), 900); }
   function stopVN(noResume) {
     if (!activeVN) return;
     activeVN.audio.pause();
@@ -428,10 +550,10 @@ const CONFIG = {
     activeVN.fill.style.width = "0";
     activeVN = null;
     vnPlaying = false;
-    if (!noResume) resumeBgm();        // VN khatam => bgm wapas chalu
+    if (!noResume) resumeBgm();
   }
   function toggleVN(vn) {
-    if (activeVN && activeVN.vn === vn) { stopVN(); return; }
+    if (activeVN && activeVN === vn) { stopVN(); return; }
     stopVN(true);
     vn.audio.currentTime = 0;
     const q = vn.audio.play();
@@ -439,13 +561,12 @@ const CONFIG = {
     vn.el.classList.add("playing");
     activeVN = vn;
     vnPlaying = true;
-    // VN ke dauran bgm poori tarah band (fade out phir pause)
     fadeTo(0, 300);
     setTimeout(() => { if (vnPlaying) bgm.pause(); }, 330);
   }
   (CONFIG.voiceNotes || []).forEach((cfg) => {
-    if (!S[cfg.page]) return;                 // leaf index == page number
-    const face = S[cfg.page].front;
+    if (cfg.page < 0 || cfg.page >= M) return;           // leaf index == page number
+    const face = faceOfLeaf(cfg.page);
     const el = document.createElement("div");
     el.className = "hot";
     el.style.left = cfg.x + "%"; el.style.top = cfg.y + "%";
@@ -454,15 +575,14 @@ const CONFIG = {
     const fill = document.createElement("div"); fill.className = "fill"; el.appendChild(fill);
     const ico = document.createElement("div"); ico.className = "ico"; ico.innerHTML = "<i></i><i></i>"; el.appendChild(ico);
     const audio = new Audio(cfg.src); audio.preload = "none";
-    const vn = { audio, el, fill };
-    activeVNRef(vn);
+    const vn = { audio, el, fill, page: cfg.page };
     audio.addEventListener("timeupdate", () => { if (audio.duration) fill.style.width = (audio.currentTime / audio.duration * 100) + "%"; });
-    audio.addEventListener("ended", () => { if (activeVN && activeVN.vn === vn) stopVN(); });
+    audio.addEventListener("ended", () => { if (activeVN === vn) stopVN(); });
     el.addEventListener("pointerdown", (e) => e.stopPropagation());
     el.addEventListener("click", (e) => { e.stopPropagation(); toggleVN(vn); });
     face.appendChild(el);
+    vns.push(vn);
   });
-  function activeVNRef(vn) { vn.vn = vn; }
 
   /* ================= PRELOAD + LOADING SCREEN ================= */
   function preload() {
@@ -481,12 +601,12 @@ const CONFIG = {
   window.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
   document.addEventListener("dblclick", (e) => e.preventDefault());
 
-  fit(); layout(); ui();
+  layout(); fit();
 
-  const LOAD_MS = 8000;                                   // loading time (ms)
+  const LOAD_MS = 8000;
   let allLoaded = false;
   preload().then(() => { allLoaded = true; });
-  setTimeout(() => { allLoaded = true; }, 25000);         // safety
+  setTimeout(() => { allLoaded = true; }, 25000);
   const barFill = $("barfill"), pctEl = $("pct"), loader = $("loader");
   const tStart = performance.now();
   function loadTick(now) {
