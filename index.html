@@ -81,18 +81,27 @@
   .btn:focus-visible { outline: 2px solid #ff9ec0; outline-offset: 2px; }
   .btn[disabled] { opacity: .25; cursor: default; }
 
-  /* loading screen */
-  .loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity .9s ease;
-    background: radial-gradient(ellipse at 50% 40%, #4a2a1c 0%, #35190f 55%, #22120c 100%); }
+  /* loading screen (website ki theme: maroon + dots + pink) */
+  .loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; transition: opacity .9s ease; overflow: hidden;
+    background-color: #2a0d1e;
+    background-image: radial-gradient(rgba(255,150,185,.11) 1.6px, transparent 1.8px), radial-gradient(ellipse at 50% 38%, #4e1a37 0%, #2a0d1e 68%, #190711 100%);
+    background-size: 26px 26px, 100% 100%; }
+  .loader::before { content: ""; position: absolute; left: 50%; top: 50%; width: min(120vmin, 900px); height: min(120vmin, 900px); transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(236,74,138,.20) 0%, rgba(236,74,138,0) 60%); pointer-events: none; }
+  .loader > * { position: relative; }
   .loader.hide { opacity: 0; pointer-events: none; }
-  .phone { position: relative; width: 52px; height: 92px; border: 4px solid #fff; border-radius: 14px; margin-bottom: 26px; animation: bob 2.2s ease-in-out infinite; }
-  .phone::after { content: ""; position: absolute; top: 7px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: rgba(255,255,255,.7); }
+  .phone { width: 52px; height: 92px; border: 4px solid #ffb3cf; border-radius: 14px; margin-bottom: 26px; animation: bob 2.2s ease-in-out infinite; box-shadow: 0 0 22px rgba(236,74,138,.45); }
+  .phone::after { content: ""; position: absolute; top: 7px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: rgba(255,200,222,.8); }
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  .ttl { margin: 0; font: 400 clamp(28px, 6vw, 46px)/1.15 "Playfair Display", Georgia, "Times New Roman", serif; color: #fff; padding: 0 20px; }
-  .bar { width: min(560px, 72vw); height: 17px; margin-top: 34px; border-radius: 9px; background: rgba(255,255,255,.18); overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0; border-radius: 9px; background: linear-gradient(90deg, #ffe9ef, #fff); }
-  .pct { margin-top: 26px; font: 700 20px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .06em; color: #fff; }
-  @media (prefers-reduced-motion: reduce) { .phone, .hot::before { animation: none; } }
+  .ttl { margin: 0; font: 400 clamp(28px, 6vw, 46px)/1.15 "Playfair Display", Georgia, "Times New Roman", serif; color: var(--ink); padding: 0 20px; }
+  .bar { width: min(560px, 72vw); height: 17px; margin-top: 34px; border-radius: 9px; background: rgba(255,227,236,.14); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,190,215,.25); }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 9px; background: linear-gradient(90deg, #ff8fb8, #ec4a8a 55%, #ffd1e1); box-shadow: 0 0 14px rgba(236,74,138,.7); }
+  .pct { margin-top: 26px; font: 700 20px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .06em; color: #ffd1e1; }
+  .tap { display: none; margin-top: 22px; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.6); font: 600 clamp(13px, 3.4vw, 17px)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .26em; animation: pulse 1.6s ease-in-out infinite; }
+  .loader.ready .tap { display: block; }
+  .loader.ready .pct { display: none; }
+  .loader.ready { cursor: pointer; }
+  @keyframes pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .phone, .hot::before, .tap { animation: none; } }
 </style>
 </head>
 <body>
@@ -120,6 +129,7 @@
   <h1 class="ttl">Opening your book</h1>
   <div class="bar"><i id="barfill"></i></div>
   <div class="pct" id="pct">0%</div>
+  <div class="tap" id="tap">TAP TO OPEN &#9829;</div>
 </div>
 
 <script>
@@ -131,19 +141,22 @@ const CONFIG = {
   cover: "coverpage.png",
   end:   "theend.png",
 
-  pageCount: 17,                 // page1.png ... page17.png (page18 dalna ho toh 18 likho)
+  pageCount: 18,                 // page1.png ... page18.png
   pagePattern: "page{n}.png",
 
   ratio: 0.714,                  // ek page ki width / height (image se apne aap set ho jaata hai)
 
-  // Background music: in naamon mein se jo file repo mein mile wo chalegi
-  bgm: ["bgm.mp3", "music.mp3", "bgmusic.mp3", "background.mp3", "song.mp3"],
-  bgmVolume: 0.45,
+  // Background music: loading khatam hote hi cover ke saath, 3 second fade-in ke baad loop mein
+  bgm: ["Bgmusic.mp3", "bgmusic.mp3", "backgoundsong.mp3", "backgroundsong.mp3", "bgm.mp3"],
+  bgmVolume: 0.8,               // 80%
+  bgmFadeMs: 3000,
 
   // Voice notes (x,y,w,h = pill ki jagah, page ke % mein)
   voiceNotes: [
     { page: 8,  x: 32.2, y: 72.8, w: 36.4, h: 5.2, src: "voicenote.mp3" },  // "play the vn !" wala page
-    { page: 15, x: 50.5, y: 42.8, w: 46,   h: 7.0, src: "hercore.mp3" }     // "iluuuuu smm" wala page
+    { page: 11, x: 39.8, y: 30.5, w: 45.2, h: 6.4, src: "desivn.mp3" },     // "देसी" wala page
+    { page: 15, x: 50.5, y: 42.8, w: 46,   h: 7.0, src: "hercore.mp3" },    // "iluuuuu smm" wala page
+    { page: 18, x: 25,   y: 82.8, w: 49.4, h: 6.8, src: "holyshi.mp3" }     // "HOLYSHI-" wala page
   ]
 };
 
@@ -489,15 +502,34 @@ const CONFIG = {
   window.addEventListener("orientationchange", () => setTimeout(fit, 250));
 
   /* ================= MUSIC (loop, band nahi hota) ================= */
-  const bgmList = [].concat(CONFIG.bgm); let bgmIdx = 0;
-  const bgm = new Audio(bgmList[0]);
+  const bgmList = [].concat(CONFIG.bgm);
+  const bgm = new Audio();
   bgm.loop = true; bgm.preload = "auto"; bgm.volume = 0;
-  let bgmStarted = false, vnPlaying = false, volTimer = null;
-  const tryPlay = () => { if (vnPlaying) return; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); };
+  let bgmOk = false, bgmAllowed = false, bgmStarted = false, vnPlaying = false, volTimer = null;
+  const tryPlay = () => { if (vnPlaying || !bgmOk) return; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); };
 
-  bgm.addEventListener("error", () => {
-    if (++bgmIdx < bgmList.length) { bgm.src = bgmList[bgmIdx]; bgm.load(); if (bgmStarted) tryPlay(); }
-  });
+  // jo naam repo mein mile wahi uthao (loading ke dauran)
+  function loadBgm() {
+    return new Promise((resolve) => {
+      let i = 0;
+      const tryNext = () => {
+        if (i >= bgmList.length) { resolve(); return; }
+        const src = bgmList[i++];
+        let settled = false;
+        const done = (ok) => {
+          if (settled) return; settled = true;
+          bgm.removeEventListener("canplay", onOk); bgm.removeEventListener("error", onErr); clearTimeout(tm);
+          if (ok) { bgmOk = true; resolve(); } else tryNext();
+        };
+        const onOk = () => done(true), onErr = () => done(false);
+        bgm.addEventListener("canplay", onOk); bgm.addEventListener("error", onErr);
+        const tm = setTimeout(() => done(bgm.readyState >= 1), 12000);
+        bgm.src = src; bgm.load();
+      };
+      tryNext();
+    });
+  }
+
   function targetVol() { return vnPlaying ? 0 : CONFIG.bgmVolume; }
   function fadeTo(v, ms) {
     clearInterval(volTimer);
@@ -509,11 +541,12 @@ const CONFIG = {
     }, 40);
   }
   function startBgm() {
-    if (bgmStarted || vnPlaying) return;
+    if (!bgmAllowed || !bgmOk || bgmStarted || vnPlaying) return;
     bgmStarted = true;
+    bgm.volume = 0;
     const q = bgm.play();
     if (q && q.catch) q.catch(() => { bgmStarted = false; });
-    fadeTo(targetVol(), 2500);
+    fadeTo(targetVol(), CONFIG.bgmFadeMs);
   }
   ["pointerdown", "pointerup", "keydown", "touchend"].forEach((ev) =>
     window.addEventListener(ev, () => { if (!bgmStarted) startBgm(); else if (bgm.paused) tryPlay(); }, { passive: true }));
@@ -587,14 +620,15 @@ const CONFIG = {
   /* ================= PRELOAD + LOADING SCREEN ================= */
   function preload() {
     const list = leaves.filter(Boolean);
-    return Promise.all(list.map((src) => new Promise((res) => {
+    const imgs = list.map((src) => new Promise((res) => {
       const im = new Image();
       im.onload = () => {
         if (src === leaves[1] && im.naturalWidth && im.naturalHeight) { CONFIG.ratio = im.naturalWidth / im.naturalHeight; fit(); }
         res();
       };
       im.onerror = res; im.src = src;
-    })));
+    }));
+    return Promise.all(imgs.concat([loadBgm()]));
   }
 
   document.addEventListener("gesturestart", (e) => e.preventDefault());
@@ -609,6 +643,26 @@ const CONFIG = {
   setTimeout(() => { allLoaded = true; }, 25000);
   const barFill = $("barfill"), pctEl = $("pct"), loader = $("loader");
   const tStart = performance.now();
+  function hideLoader() { loader.classList.add("hide"); setTimeout(() => { loader.style.display = "none"; }, 1000); }
+  // loading khatam => cover dikhe + song 3 sec fade-in ke saath shuru.
+  // Browser agar bina tap ke awaaz roke, toh "TAP TO OPEN" aata hai.
+  function finishLoading() {
+    bgmAllowed = true;
+    if (!bgmOk) { hideLoader(); return; }
+    bgm.volume = 0;
+    const q = bgm.play();
+    const started = () => { bgmStarted = true; fadeTo(targetVol(), CONFIG.bgmFadeMs); hideLoader(); };
+    if (!q || !q.then) { started(); return; }
+    q.then(started).catch((err) => {
+      bgmStarted = false;
+      if (err && err.name === "NotAllowedError") {
+        loader.classList.add("ready");
+        const go = () => { loader.removeEventListener("pointerdown", go); window.removeEventListener("keydown", go); startBgm(); hideLoader(); };
+        loader.addEventListener("pointerdown", go);
+        window.addEventListener("keydown", go);
+      } else hideLoader();
+    });
+  }
   function loadTick(now) {
     const p = Math.min(1, (now - tStart) / LOAD_MS);
     const e = 0.4 * p + 0.6 * (p * p * (3 - 2 * p));
@@ -616,7 +670,7 @@ const CONFIG = {
     if (p >= 1 && !allLoaded) pct = 99;
     if (p >= 1 && allLoaded) {
       barFill.style.width = "100%"; pctEl.textContent = "100%";
-      setTimeout(() => { loader.classList.add("hide"); setTimeout(() => { loader.style.display = "none"; }, 1000); }, 450);
+      setTimeout(finishLoading, 450);
       return;
     }
     barFill.style.width = pct + "%"; pctEl.textContent = pct + "%";
