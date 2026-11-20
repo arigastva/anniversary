@@ -29,8 +29,6 @@
   .stack { position: absolute; top: 4px; bottom: -14px; left: 0; width: 0; border-radius: 6px 15px 15px 6px; background: #fff3ef; box-shadow: 3px 3px 0 #f5d2dc, 5px 5px 0 #fff4f2, 7px 7px 0 #eec3d0; }
   .ribbon { position: absolute; left: 0; bottom: -40px; width: 17px; height: 46px; background: linear-gradient(90deg, #b30f2c, #e92a4b 50%, #a80d27); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); }
   .book { position: absolute; inset: 0; transform-style: preserve-3d; }
-  .hint { position: absolute; left: 50%; right: 0; bottom: 5%; z-index: 30; text-align: center; pointer-events: none; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.7); font: 600 clamp(11px, 3vw, 15px)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .24em; transition: opacity .35s; }
-  .hint.off { opacity: 0; }
 
   .sheet { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; transform-origin: left center; transform-style: preserve-3d; }
   .face { position: absolute; inset: 0; overflow: hidden; background: #ffe6ee; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
@@ -114,7 +112,6 @@
       <div class="stack" id="stack"></div>
       <div class="board" id="board"></div>
       <div class="book" id="book"></div>
-      <div class="hint" id="hint">TAP TO OPEN &#9829;</div>
     </div>
     <div class="nav">
       <button class="btn" id="prev" aria-label="Pichla page" disabled>&#8249;</button>
@@ -149,7 +146,8 @@ const CONFIG = {
   // Background music: loading khatam hote hi cover ke saath, 3 second fade-in ke baad loop mein
   bgm: ["Bgmusic.mp3", "bgmusic.mp3", "backgoundsong.mp3", "backgroundsong.mp3", "bgm.mp3"],
   bgmVolume: 0.8,               // 80%
-  bgmFadeMs: 3000,
+  bgmFadeMs: 3000,              // cover pe fade-in
+  bgmFadeOutMs: 2500,           // end page aate waqt fade-out
 
   // Voice notes (x,y,w,h = pill ki jagah, page ke % mein)
   voiceNotes: [
@@ -170,7 +168,7 @@ const CONFIG = {
   const $ = (id) => document.getElementById(id);
   const stage = $("stage"), wrap = $("wrap"), book = $("book");
   const shadow = $("shadow"), board = $("board"), stack = $("stack"), ribbon = $("ribbon");
-  const btnPrev = $("prev"), btnNext = $("next"), cap = $("cap"), hint = $("hint");
+  const btnPrev = $("prev"), btnNext = $("next"), cap = $("cap");
 
   // leaf 0 = cover, leaf n = page n, (blank agar zaroorat), last leaf = end
   const leaves = [CONFIG.cover];
@@ -332,7 +330,7 @@ const CONFIG = {
     btnPrev.disabled = cur <= 0;
     btnNext.disabled = cur >= N;
     cap.textContent = capText();
-    hint.classList.toggle("off", cur > 0);
+    if (cur === 0) restartBgm();
     vns.forEach((v) => { v.el.style.pointerEvents = pageFocused(v.page) ? "auto" : "none"; });
   }
 
@@ -367,7 +365,7 @@ const CONFIG = {
       layout(); ui();
     });
   }
-  function onCommit() { hint.classList.add("off"); startBgm(); flipSound(); stopVN(); }
+  function onCommit() { startBgm(); flipSound(); stopVN(); }
 
   function panTo(target) {
     if (busy || focus === target) return;
@@ -384,6 +382,7 @@ const CONFIG = {
     if (canPan() && focus === 0) { panTo(1); return; }
     const i = cur;
     onCommit(); layout(i);
+    if (i === N - 1) endMusic();
     runFlip(i, 180, "next", fo, true);
   }
   function prev() {
@@ -417,7 +416,6 @@ const CONFIG = {
       stage.classList.add("dragging");
       if (drag.kind === "flip") {
         drag.i = dir === "next" ? cur : cur - 1;
-        hint.classList.add("off");
         layout(drag.i);
         drag.apply = flipApply(drag.i, dir, fo);
       }
@@ -460,7 +458,7 @@ const CONFIG = {
     const i = d.i, a = S[i].a;
     const commit = d.dir === "next" ? (a > 55 || d.vx < -0.45) : ((180 - a) > 55 || d.vx > 0.45);
     const to = d.dir === "next" ? (commit ? 180 : 0) : (commit ? 0 : 180);
-    if (commit) onCommit();
+    if (commit) { onCommit(); if (d.dir === "next" && i === N - 1) endMusic(); }
     const apply = d.apply, from = a;
     tween(durFor(a, to), (e2) => apply(from + (to - from) * e2), () => {
       if (commit) { cur = d.dir === "next" ? i + 1 : i; focus = d.dir === "next" ? 0 : 1; }
@@ -505,8 +503,8 @@ const CONFIG = {
   const bgmList = [].concat(CONFIG.bgm);
   const bgm = new Audio();
   bgm.loop = true; bgm.preload = "auto"; bgm.volume = 0;
-  let bgmOk = false, bgmAllowed = false, bgmStarted = false, vnPlaying = false, volTimer = null;
-  const tryPlay = () => { if (vnPlaying || !bgmOk) return; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); };
+  let bgmOk = false, bgmAllowed = false, bgmStarted = false, bgmEnded = false, vnPlaying = false, volTimer = null;
+  const tryPlay = () => { if (vnPlaying || !bgmOk || bgmEnded) return; const q = bgm.play(); if (q && q.catch) q.catch(() => {}); };
 
   // jo naam repo mein mile wahi uthao (loading ke dauran)
   function loadBgm() {
@@ -530,18 +528,36 @@ const CONFIG = {
     });
   }
 
-  function targetVol() { return vnPlaying ? 0 : CONFIG.bgmVolume; }
-  function fadeTo(v, ms) {
+  function targetVol() { return (vnPlaying || bgmEnded) ? 0 : CONFIG.bgmVolume; }
+  function fadeTo(v, ms, done) {
     clearInterval(volTimer);
     const from = bgm.volume, t0 = performance.now();
     volTimer = setInterval(() => {
       const p = Math.min(1, (performance.now() - t0) / ms);
       bgm.volume = Math.min(1, Math.max(0, from + (v - from) * p));
-      if (p >= 1) clearInterval(volTimer);
+      if (p >= 1) { clearInterval(volTimer); if (done) done(); }
     }, 40);
   }
+  // End page aate hi: music dheere dheere kam hoke band
+  function endMusic() {
+    if (bgmEnded) return;
+    bgmEnded = true;
+    if (!bgmStarted) return;
+    fadeTo(0, CONFIG.bgmFadeOutMs, () => { if (bgmEnded) bgm.pause(); });
+  }
+  // Cover pe wapas aane par song shuru se, 3 sec fade-in ke saath
+  function restartBgm() {
+    if (!bgmEnded) return;
+    bgmEnded = false;
+    if (!bgmOk) return;
+    bgmStarted = true;
+    bgm.currentTime = 0;
+    bgm.volume = 0;
+    tryPlay();
+    fadeTo(targetVol(), CONFIG.bgmFadeMs);
+  }
   function startBgm() {
-    if (!bgmAllowed || !bgmOk || bgmStarted || vnPlaying) return;
+    if (!bgmAllowed || !bgmOk || bgmStarted || vnPlaying || bgmEnded) return;
     bgmStarted = true;
     bgm.volume = 0;
     const q = bgm.play();
